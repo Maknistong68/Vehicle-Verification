@@ -126,6 +126,36 @@ body {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* ── PWA Standalone Mode ─────────────────────────────── */
+@media all and (display-mode: standalone) {
+  /* Account for status bar in standalone PWA mode */
+  body {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  /* Prevent text selection on UI elements (feels more native) */
+  button, a, nav, [role="button"] {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* Prevent pull-to-refresh on iOS which can be annoying in PWAs */
+  body {
+    overscroll-behavior-y: contain;
+  }
+}
+
+/* Disable callout on long-press for links/images in PWA */
+@supports (-webkit-touch-callout: none) {
+  .pwa-no-callout {
+    -webkit-touch-callout: none;
+  }
+}
+
 /* ── Animations ──────────────────────────────────────── */
 @keyframes slide-up {
   from {
