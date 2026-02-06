@@ -72,6 +72,7 @@ CREATE TABLE user_profiles (
   full_name   TEXT NOT NULL,
   role        user_role NOT NULL DEFAULT 'contractor',
   phone       TEXT,
+  company_id  UUID REFERENCES companies(id) ON DELETE SET NULL,
   is_active   BOOLEAN NOT NULL DEFAULT TRUE,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -239,6 +240,7 @@ $$;
 CREATE INDEX idx_user_profiles_role ON user_profiles(role);
 CREATE INDEX idx_user_profiles_email ON user_profiles(email);
 CREATE INDEX idx_user_profiles_is_active ON user_profiles(is_active);
+CREATE INDEX idx_user_profiles_company_id ON user_profiles(company_id);
 
 -- companies
 CREATE INDEX idx_companies_code ON companies(code);
@@ -502,16 +504,12 @@ CREATE POLICY "vehicles_equipment_inspector_select"
 
 CREATE POLICY "vehicles_equipment_contractor_select"
   ON vehicles_equipment FOR SELECT TO authenticated
-  USING (get_user_role() = 'contractor');
+  USING (get_user_role() = 'contractor'
+    AND company_id = (SELECT company_id FROM user_profiles WHERE id = auth.uid()));
 
 CREATE POLICY "vehicles_equipment_verifier_select"
   ON vehicles_equipment FOR SELECT TO authenticated
-  USING (
-    get_user_role() = 'verifier'
-    AND id IN (
-      SELECT vehicle_equipment_id FROM inspections
-    )
-  );
+  USING (get_user_role() = 'verifier');
 
 
 -- **************************************************************************

@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 
 const VALID_ROLES = ['admin', 'inspector', 'contractor', 'verifier'] as const
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export async function POST(request: Request) {
   try {
@@ -24,7 +25,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { email, password, full_name, role, phone } = body
+    const { email, password, full_name, role, phone, company_id } = body
 
     if (!email || !password || !full_name || !role) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -53,6 +54,14 @@ export async function POST(request: Request) {
     // Validate phone if provided
     if (phone != null && (typeof phone !== 'string' || phone.length > 20)) {
       return NextResponse.json({ error: 'Invalid phone number' }, { status: 400 })
+    }
+
+    // Validate company_id: required for contractors, must be valid UUID if provided
+    if (role === 'contractor' && !company_id) {
+      return NextResponse.json({ error: 'Company is required for contractors' }, { status: 400 })
+    }
+    if (company_id != null && (typeof company_id !== 'string' || !UUID_REGEX.test(company_id))) {
+      return NextResponse.json({ error: 'Invalid company ID' }, { status: 400 })
     }
 
     // Admins cannot create owners or other admins
@@ -87,6 +96,7 @@ export async function POST(request: Request) {
         full_name: full_name.trim(),
         role,
         phone: phone?.trim() || null,
+        company_id: role === 'contractor' ? company_id : null,
         is_active: true,
       })
 
@@ -102,7 +112,7 @@ export async function POST(request: Request) {
       action: 'CREATE',
       table_name: 'user_profiles',
       record_id: authData.user.id,
-      new_values: { email, full_name: full_name.trim(), role },
+      new_values: { email, full_name: full_name.trim(), role, company_id: role === 'contractor' ? company_id : null },
     })
 
     if (auditError) {

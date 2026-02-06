@@ -3,10 +3,16 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-export function CreateUserForm({ currentUserRole }: { currentUserRole: string }) {
+interface Props {
+  currentUserRole: string
+  companies: { id: string; name: string }[]
+}
+
+export function CreateUserForm({ currentUserRole, companies }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const [selectedRole, setSelectedRole] = useState('')
   const router = useRouter()
 
   const availableRoles = currentUserRole === 'owner'
@@ -29,6 +35,7 @@ export function CreateUserForm({ currentUserRole }: { currentUserRole: string })
         full_name: fd.get('full_name'),
         role: fd.get('role'),
         phone: fd.get('phone') || null,
+        company_id: selectedRole === 'contractor' ? fd.get('company_id') || null : null,
       }),
     })
 
@@ -88,13 +95,32 @@ export function CreateUserForm({ currentUserRole }: { currentUserRole: string })
 
         <div>
           <label className="block text-sm font-medium text-gray-600 mb-1.5">Role *</label>
-          <select name="role" required className="glass-input">
+          <select
+            name="role"
+            required
+            className="glass-input"
+            value={selectedRole}
+            onChange={(e) => setSelectedRole(e.target.value)}
+          >
             <option value="">Select role...</option>
             {availableRoles.map(r => (
               <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>
             ))}
           </select>
         </div>
+
+        {selectedRole === 'contractor' && (
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-1.5">Company *</label>
+            <select name="company_id" required className="glass-input">
+              <option value="">Select company...</option>
+              {companies.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-400 mt-1">Contractors can only view vehicles from their assigned company.</p>
+          </div>
+        )}
 
         {error && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-lg">

@@ -19,16 +19,29 @@ export default async function EditUserRolePage({ params }: { params: Promise<{ i
 
   const { data: targetUser } = await supabase
     .from('user_profiles')
-    .select('id, full_name, email, role, is_active')
+    .select('id, full_name, email, role, is_active, company_id')
     .eq('id', id)
     .single()
 
   if (!targetUser) redirect('/users')
 
+  const { data: companies } = await supabase
+    .from('companies')
+    .select('id, name')
+    .eq('is_active', true)
+    .order('name')
+
   return (
     <>
       <PageHeader title="Edit User Role" description={"Editing role for: " + targetUser.email} />
-      <EditRoleForm userId={targetUser.id} currentRole={targetUser.role} userName={targetUser.full_name} isActive={targetUser.is_active} />
+      <EditRoleForm
+        userId={targetUser.id}
+        currentRole={targetUser.role}
+        userName={targetUser.full_name}
+        isActive={targetUser.is_active}
+        companies={companies || []}
+        currentCompanyId={targetUser.company_id}
+      />
     </>
   )
 }

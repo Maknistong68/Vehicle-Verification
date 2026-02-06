@@ -13,6 +13,7 @@ export interface UserProfile {
   full_name: string
   role: UserRole
   phone: string | null
+  company_id: string | null
   is_active: boolean
   created_at: string
   updated_at: string

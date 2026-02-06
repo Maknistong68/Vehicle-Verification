@@ -16,10 +16,16 @@ export default async function NewUserPage() {
 
   if (!profile || !['owner', 'admin'].includes(profile.role)) redirect('/dashboard')
 
+  const { data: companies } = await supabase
+    .from('companies')
+    .select('id, name')
+    .eq('is_active', true)
+    .order('name')
+
   return (
     <>
       <PageHeader title="Add User" description="Create a new system user. They will receive an email to set their password." />
-      <CreateUserForm currentUserRole={profile.role} />
+      <CreateUserForm currentUserRole={profile.role} companies={companies || []} />
     </>
   )
 }

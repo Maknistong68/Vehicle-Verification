@@ -9,11 +9,14 @@ interface Props {
   currentRole: string
   userName: string
   isActive: boolean
+  companies: { id: string; name: string }[]
+  currentCompanyId: string | null
 }
 
-export function EditRoleForm({ userId, currentRole, userName, isActive }: Props) {
+export function EditRoleForm({ userId, currentRole, userName, isActive, companies, currentCompanyId }: Props) {
   const [role, setRole] = useState(currentRole)
   const [active, setActive] = useState(isActive)
+  const [companyId, setCompanyId] = useState(currentCompanyId || '')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
@@ -24,9 +27,19 @@ export function EditRoleForm({ userId, currentRole, userName, isActive }: Props)
     setLoading(true)
     setError(null)
 
+    if (role === 'contractor' && !companyId) {
+      setError('Company is required for contractors')
+      setLoading(false)
+      return
+    }
+
     const { error: updateError } = await supabase
       .from('user_profiles')
-      .update({ role, is_active: active })
+      .update({
+        role,
+        is_active: active,
+        company_id: role === 'contractor' ? companyId : null,
+      })
       .eq('id', userId)
 
     if (updateError) {
@@ -57,6 +70,24 @@ export function EditRoleForm({ userId, currentRole, userName, isActive }: Props)
             <option value="verifier">Internal Verifier</option>
           </select>
         </div>
+
+        {role === 'contractor' && (
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-1.5">Company *</label>
+            <select
+              value={companyId}
+              onChange={e => setCompanyId(e.target.value)}
+              required
+              className="glass-input"
+            >
+              <option value="">Select company...</option>
+              {companies.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-400 mt-1">Contractors can only view vehicles from their assigned company.</p>
+          </div>
+        )}
 
         <div className="flex items-center gap-3 min-h-[44px]">
           <input type="checkbox" id="active" checked={active} onChange={e => setActive(e.target.checked)} className="rounded" />
