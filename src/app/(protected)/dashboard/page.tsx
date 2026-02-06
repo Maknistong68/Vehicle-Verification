@@ -62,7 +62,6 @@ export default async function DashboardPage() {
 
   let inspectorWorkload: { full_name: string; count: number }[] = []
   if (role === 'owner' || role === 'admin') {
-    // Single query: fetch active inspections with inspector names (avoids N+1)
     const { data: activeInspections } = await supabase
       .from('inspections')
       .select('assigned_inspector_id, inspector:user_profiles!inspections_assigned_inspector_id_fkey(full_name)')
@@ -94,24 +93,27 @@ export default async function DashboardPage() {
         description={`Welcome back, ${profile.full_name}. Here\u2019s your inspection overview.`}
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      {/* ── Overview Stats ─────────────────────────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 mb-6">
         <StatCard label="Total Inspections" value={totalInspections} icon="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" color="blue" />
-        <StatCard label="Passed" value={passCount} icon="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" color="green" subtitle={totalInspections ? `${Math.round((passCount / totalInspections) * 100)}% pass rate` : undefined} />
-        <StatCard label="Failed" value={failCount} icon="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" color="red" />
-        <StatCard label="Pending / Scheduled" value={pendingCount + scheduledCount} icon="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" color="yellow" />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
+        <StatCard label="Passed" value={passCount} icon="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" color="green" subtitle={totalInspections ? `${Math.round((passCount / totalInspections) * 100)}% pass rate` : undefined} emptyMessage="No passes yet" />
+        <StatCard label="Failed" value={failCount} icon="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" color="red" emptyMessage="No failures" />
+        <StatCard label="Pending" value={pendingCount + scheduledCount} icon="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" color="yellow" emptyMessage="All caught up" />
         <StatCard label="Completed" value={completedCount} icon="M5 13l4 4L19 7" color="purple" />
-        <StatCard label="Total Vehicles/Equipment" value={totalVehicles} icon="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" color="cyan" />
-        <StatCard label="Scheduled" value={scheduledCount} icon="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" color="blue" />
+        <StatCard label="Vehicles/Equipment" value={totalVehicles} icon="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" color="cyan" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* ── Activity Section ───────────────────────────────── */}
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-1 h-5 rounded-full bg-gradient-to-b from-indigo-400 to-purple-500" />
+        <h2 className="text-base font-semibold text-white tracking-tight">Recent Activity</h2>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         <div className="lg:col-span-2 glass-card">
-          <div className="flex items-center justify-between p-5 border-b border-white/10">
-            <h2 className="text-lg font-semibold text-white">Recent Inspections</h2>
-            <Link href="/inspections" className="text-sm text-indigo-400 hover:text-indigo-300">View all</Link>
+          <div className="flex items-center justify-between p-4 md:p-5 border-b border-white/10">
+            <h3 className="text-sm font-semibold text-white">Recent Inspections</h3>
+            <Link href="/inspections" className="text-xs text-indigo-400 hover:text-indigo-300 font-medium">View all</Link>
           </div>
 
           {/* Desktop table */}
@@ -140,45 +142,59 @@ export default async function DashboardPage() {
                   </tr>
                 ))}
                 {(!recentInspections || recentInspections.length === 0) && (
-                  <tr><td colSpan={5} className="p-8 text-center text-white/40">No inspections found</td></tr>
+                  <tr>
+                    <td colSpan={5} className="p-12 text-center">
+                      <svg className="w-10 h-10 text-white/20 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                      </svg>
+                      <p className="text-white/40 text-sm">No inspections yet</p>
+                      <p className="text-white/25 text-xs mt-1">Create your first inspection to get started</p>
+                    </td>
+                  </tr>
                 )}
               </tbody>
             </table>
           </div>
 
           {/* Mobile cards */}
-          <div className="md:hidden p-3 space-y-3">
+          <div className="md:hidden p-3 space-y-2">
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             {recentInspections?.map((insp: any) => (
-              <div key={insp.id} className="glass-card-interactive p-4">
-                <div className="flex items-start justify-between mb-2">
+              <div key={insp.id} className="glass-card-interactive p-3">
+                <div className="flex items-start justify-between mb-1.5">
                   <div>
                     <p className="text-sm font-medium text-white">{maskPlateNumber(insp.vehicle_equipment?.plate_number, role)}</p>
                     <p className="text-xs text-white/40">{maskName(insp.vehicle_equipment?.driver_name, role)}</p>
                   </div>
                   <StatusBadge label={insp.result} variant={getInspectionResultVariant(insp.result)} />
                 </div>
-                <div className="flex items-center justify-between text-xs text-white/50">
+                <div className="flex items-center justify-between text-xs text-white/50 pt-1.5 border-t border-white/5">
                   <span>{maskName(insp.inspector?.full_name, role)}</span>
-                  <span>{new Date(insp.scheduled_date).toLocaleDateString()}</span>
+                  <span>{new Date(insp.scheduled_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                 </div>
               </div>
             ))}
             {(!recentInspections || recentInspections.length === 0) && (
-              <p className="text-center text-white/40 py-8 text-sm">No inspections found</p>
+              <div className="text-center py-10">
+                <svg className="w-10 h-10 text-white/20 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                <p className="text-white/40 text-sm">No inspections yet</p>
+                <p className="text-white/25 text-xs mt-1">Create your first inspection to get started</p>
+              </div>
             )}
           </div>
         </div>
 
         {(role === 'owner' || role === 'admin') && (
           <div className="glass-card">
-            <div className="p-5 border-b border-white/10">
-              <h2 className="text-lg font-semibold text-white">Inspector Workload</h2>
+            <div className="p-4 md:p-5 border-b border-white/10">
+              <h3 className="text-sm font-semibold text-white">Inspector Workload</h3>
               <p className="text-xs text-white/40 mt-1">Active assignments</p>
             </div>
-            <div className="p-4 space-y-3">
+            <div className="p-3 md:p-4 space-y-2">
               {inspectorWorkload.map((insp, idx) => (
-                <div key={idx} className="flex items-center justify-between p-3 bg-white/[0.03] rounded-lg">
+                <div key={idx} className="flex items-center justify-between p-2.5 bg-white/[0.03] rounded-lg">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full gradient-blue-purple flex items-center justify-center text-xs font-medium text-white">
                       {insp.full_name?.charAt(0)?.toUpperCase() || '?'}
@@ -191,7 +207,12 @@ export default async function DashboardPage() {
                 </div>
               ))}
               {inspectorWorkload.length === 0 && (
-                <p className="text-center text-white/40 py-4 text-sm">No inspectors found</p>
+                <div className="text-center py-6">
+                  <svg className="w-8 h-8 text-white/20 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <p className="text-white/40 text-xs">No active assignments</p>
+                </div>
               )}
             </div>
           </div>
