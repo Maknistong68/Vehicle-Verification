@@ -22,7 +22,8 @@ export function SearchBar({ value, onChange, placeholder = 'Search...' }: Search
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full glass-input pl-10 pr-9 text-sm"
+        className="w-full glass-input pr-9 text-sm"
+        style={{ paddingLeft: '2.5rem' }}
       />
       {value && (
         <button
