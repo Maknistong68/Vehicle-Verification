@@ -4,11 +4,43 @@
   "description": "Vehicle & Equipment Inspection Management System",
   "start_url": "/dashboard",
   "scope": "/",
+  "id": "/",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#fafafa",
   "theme_color": "#3ECF8E",
   "categories": ["business", "utilities"],
+  "prefer_related_applications": false,
+  "shortcuts": [
+    {
+      "name": "Fleet",
+      "short_name": "Fleet",
+      "description": "View all vehicles and inspections",
+      "url": "/fleet",
+      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "New Inspection",
+      "short_name": "Inspect",
+      "description": "Create a new inspection",
+      "url": "/inspections/new",
+      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Vehicle Lookup",
+      "short_name": "Lookup",
+      "description": "Look up vehicle status",
+      "url": "/lookup",
+      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Appointments",
+      "short_name": "Appts",
+      "description": "View scheduled appointments",
+      "url": "/appointments",
+      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
+    }
+  ],
   "icons": [
     {
       "src": "/icons/icon-72x72.png",

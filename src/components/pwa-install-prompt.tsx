@@ -1,24 +1,30 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 /**
- * iOS Safari "Add to Home Screen" prompt.
- * Only shows on iOS Safari when NOT already installed as a PWA.
+ * Cross-platform PWA install prompt.
+ * - Android/Chrome: captures `beforeinstallprompt` and shows a custom "Install" button
+ * - iOS Safari: detects non-standalone Safari and shows "Add to Home Screen" instructions
  * Dismissible, remembers dismissal for 7 days via localStorage.
  */
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
+}
+
 export function PWAInstallPrompt() {
   const [show, setShow] = useState(false)
+  const [platform, setPlatform] = useState<'ios' | 'android' | null>(null)
+  const deferredPromptRef = useRef<BeforeInstallPromptEvent | null>(null)
+  const [installing, setInstalling] = useState(false)
 
   useEffect(() => {
-    // Only show on iOS Safari, not in standalone mode
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-      (navigator.userAgent.includes('Mac') && 'ontouchend' in document)
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
       (window.navigator as any).standalone === true
-    const isSafari = /Safari/.test(navigator.userAgent) && !/CriOS|FxiOS|OPiOS|EdgiOS/.test(navigator.userAgent)
 
-    if (!isIOS || isStandalone || !isSafari) return
+    if (isStandalone) return
 
     // Check if dismissed recently
     const dismissed = localStorage.getItem('pwa-prompt-dismissed')
@@ -28,14 +34,62 @@ export function PWAInstallPrompt() {
       if (Date.now() - dismissedAt < sevenDays) return
     }
 
-    // Show after a short delay so the user sees the page first
-    const timer = setTimeout(() => setShow(true), 2000)
-    return () => clearTimeout(timer)
+    // Android / Chrome: listen for beforeinstallprompt
+    const handleBeforeInstall = (e: Event) => {
+      e.preventDefault()
+      deferredPromptRef.current = e as BeforeInstallPromptEvent
+      setPlatform('android')
+      setShow(true)
+    }
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall)
+
+    // Listen for successful install
+    const handleInstalled = () => {
+      setShow(false)
+      deferredPromptRef.current = null
+    }
+    window.addEventListener('appinstalled', handleInstalled)
+
+    // iOS Safari: detect and show instructions
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.userAgent.includes('Mac') && 'ontouchend' in document)
+    const isSafari = /Safari/.test(navigator.userAgent) &&
+      !/CriOS|FxiOS|OPiOS|EdgiOS|Chrome/.test(navigator.userAgent)
+
+    if (isIOS && isSafari) {
+      const timer = setTimeout(() => {
+        setPlatform('ios')
+        setShow(true)
+      }, 2000)
+      return () => {
+        clearTimeout(timer)
+        window.removeEventListener('beforeinstallprompt', handleBeforeInstall)
+        window.removeEventListener('appinstalled', handleInstalled)
+      }
+    }
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstall)
+      window.removeEventListener('appinstalled', handleInstalled)
+    }
   }, [])
 
   const dismiss = () => {
     setShow(false)
     localStorage.setItem('pwa-prompt-dismissed', Date.now().toString())
+  }
+
+  const handleInstallClick = async () => {
+    const prompt = deferredPromptRef.current
+    if (!prompt) return
+    setInstalling(true)
+    prompt.prompt()
+    const { outcome } = await prompt.userChoice
+    if (outcome === 'accepted') {
+      setShow(false)
+    }
+    deferredPromptRef.current = null
+    setInstalling(false)
   }
 
   if (!show) return null
@@ -53,7 +107,9 @@ export function PWAInstallPrompt() {
             <div className="flex-1 min-w-0">
               <h3 className="text-sm font-semibold text-gray-900">Install VVS Inspect</h3>
               <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
-                Add to your home screen for quick access and a full-screen experience.
+                {platform === 'android'
+                  ? 'Install for quick access, offline support, and a full-screen experience.'
+                  : 'Add to your home screen for quick access and a full-screen experience.'}
               </p>
             </div>
             <button
@@ -67,15 +123,38 @@ export function PWAInstallPrompt() {
             </button>
           </div>
 
-          <div className="mt-3 flex items-center gap-2 text-xs text-gray-500 bg-gray-50 rounded-lg p-2.5">
-            <span className="font-medium text-gray-700">How:</span>
-            <span>Tap</span>
-            {/* iOS Share icon */}
-            <svg className="w-4 h-4 text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-            </svg>
-            <span>then <strong>&quot;Add to Home Screen&quot;</strong></span>
-          </div>
+          {/* Android: show Install button */}
+          {platform === 'android' && (
+            <div className="mt-3 flex items-center gap-2">
+              <button
+                onClick={handleInstallClick}
+                disabled={installing}
+                className="flex-1 btn-primary !py-2.5 !text-sm"
+              >
+                {installing ? 'Installing...' : 'Install App'}
+              </button>
+              <button
+                onClick={dismiss}
+                className="btn-secondary !py-2.5 !text-sm !px-4"
+              >
+                Not now
+              </button>
+            </div>
+          )}
+
+          {/* iOS: show instructions */}
+          {platform === 'ios' && (
+            <div className="mt-3 flex items-center gap-2 text-xs text-gray-500 bg-gray-50 rounded-lg p-2.5">
+              <span className="font-medium text-gray-700">How:</span>
+              <span>Tap</span>
+              {/* iOS Share icon */}
+              <svg className="w-5 h-5 text-blue-500 shrink-0" viewBox="0 0 24 24" fill="none">
+                <path d="M12 3v12M12 3l4 4M12 3L8 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M4 14v5a2 2 0 002 2h12a2 2 0 002-2v-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <span>then <strong>&quot;Add to Home Screen&quot;</strong></span>
+            </div>
+          )}
         </div>
       </div>
     </div>

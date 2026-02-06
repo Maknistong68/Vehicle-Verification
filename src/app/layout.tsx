@@ -87,6 +87,9 @@ export const metadata: Metadata = {
       },
     ],
   },
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
   icons: {
     icon: [
       { url: "/favicon.png", sizes: "32x32", type: "image/png" },
