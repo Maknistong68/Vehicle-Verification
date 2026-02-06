@@ -15,13 +15,31 @@ export default async function ProtectedLayout({
 
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase
+  const { data: profile, error } = await supabase
     .from('user_profiles')
     .select('*')
     .eq('id', user.id)
     .single()
 
-  if (!profile) redirect('/login')
+  // If no profile exists, show setup prompt instead of redirect-looping
+  if (!profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="glass-card p-8 max-w-md text-center">
+          <h1 className="text-xl font-bold text-white mb-2">Profile Not Found</h1>
+          <p className="text-white/50 text-sm mb-4">
+            {error
+              ? `Database error: ${error.message}. Make sure the SQL migration has been run in Supabase SQL Editor.`
+              : 'No user profile found for your account. Please create one via the Setup page.'}
+          </p>
+          <a href="/setup" className="btn-primary inline-block">Go to Setup</a>
+          <p className="mt-4 text-xs text-white/30">
+            If you already ran the migration, go to <a href="/setup" className="text-indigo-400 underline">/setup</a> to create your Owner account.
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen md:flex">
