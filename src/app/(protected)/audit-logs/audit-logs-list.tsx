@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { SearchBar } from '@/components/search-bar'
+import { Pagination } from '@/components/pagination'
 
 interface AuditLogRow {
   id: number
@@ -39,7 +40,14 @@ const actionColors: Record<string, string> = {
   INSERT: 'text-green-700 bg-green-50',
 }
 
-export function AuditLogsList({ logs }: { logs: AuditLogRow[] }) {
+interface Props {
+  logs: AuditLogRow[]
+  totalCount: number
+  currentPage: number
+  pageSize: number
+}
+
+export function AuditLogsList({ logs, totalCount, currentPage, pageSize }: Props) {
   const [search, setSearch] = useState('')
 
   const filtered = useMemo(() => {
@@ -174,6 +182,8 @@ export function AuditLogsList({ logs }: { logs: AuditLogRow[] }) {
           </p>
         )}
       </div>
+
+      <Pagination currentPage={currentPage} totalCount={totalCount} pageSize={pageSize} />
     </>
   )
 }

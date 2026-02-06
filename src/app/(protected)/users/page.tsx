@@ -5,7 +5,14 @@ import { UserRole } from '@/lib/types'
 import Link from 'next/link'
 import { UsersList } from './users-list'
 
-export default async function UsersPage() {
+const PAGE_SIZE = 25
+
+export default async function UsersPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
+  const { page: pageParam } = await searchParams
+  const currentPage = Math.max(1, parseInt(pageParam || '1', 10) || 1)
+  const from = (currentPage - 1) * PAGE_SIZE
+  const to = from + PAGE_SIZE - 1
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -19,10 +26,15 @@ export default async function UsersPage() {
   if (!profile || !['owner', 'admin'].includes(profile.role)) redirect('/dashboard')
   const role = profile.role as UserRole
 
+  const { count: totalCount } = await supabase
+    .from('user_profiles')
+    .select('*', { count: 'exact', head: true })
+
   const { data: users } = await supabase
     .from('user_profiles')
     .select('*')
     .order('created_at', { ascending: false })
+    .range(from, to)
 
   return (
     <>
@@ -42,7 +54,12 @@ export default async function UsersPage() {
         }
       />
 
-      <UsersList users={(users || []) as any} />
+      <UsersList
+        users={(users || []) as any}
+        totalCount={totalCount ?? 0}
+        currentPage={currentPage}
+        pageSize={PAGE_SIZE}
+      />
     </>
   )
 }

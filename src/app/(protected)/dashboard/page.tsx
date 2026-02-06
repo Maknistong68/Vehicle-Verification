@@ -123,6 +123,7 @@ export default async function DashboardPage() {
                   <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Result</th>
                   <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Status</th>
                   <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Date</th>
+                  <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -136,11 +137,12 @@ export default async function DashboardPage() {
                     <td className="p-4"><StatusBadge label={insp.result} variant={getInspectionResultVariant(insp.result)} /></td>
                     <td className="p-4"><StatusBadge label={insp.status.replace('_', ' ')} variant={getInspectionStatusVariant(insp.status)} /></td>
                     <td className="p-4 text-sm text-gray-500">{new Date(insp.scheduled_date).toLocaleDateString()}</td>
+                    <td className="p-4"><Link href={`/inspections/${insp.id}`} className="text-xs text-emerald-600 hover:text-emerald-500 font-medium">View</Link></td>
                   </tr>
                 ))}
                 {(!recentInspections || recentInspections.length === 0) && (
                   <tr>
-                    <td colSpan={5} className="p-12 text-center">
+                    <td colSpan={6} className="p-12 text-center">
                       <svg className="w-10 h-10 text-gray-300 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                       </svg>
@@ -157,7 +159,7 @@ export default async function DashboardPage() {
           <div className="md:hidden p-3 space-y-2">
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             {recentInspections?.map((insp: any) => (
-              <div key={insp.id} className="glass-card-interactive p-3">
+              <Link key={insp.id} href={`/inspections/${insp.id}`} className="block glass-card-interactive p-3">
                 <div className="flex items-start justify-between mb-1.5">
                   <div>
                     <p className="text-sm font-medium text-gray-900">{maskPlateNumber(insp.vehicle_equipment?.plate_number, role)}</p>
@@ -169,7 +171,7 @@ export default async function DashboardPage() {
                   <span>{maskName(insp.inspector?.full_name, role)}</span>
                   <span>{new Date(insp.scheduled_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                 </div>
-              </div>
+              </Link>
             ))}
             {(!recentInspections || recentInspections.length === 0) && (
               <div className="text-center py-10">

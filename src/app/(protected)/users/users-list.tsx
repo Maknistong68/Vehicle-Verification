@@ -5,6 +5,7 @@ import { useRole } from '@/lib/role-context'
 import { SearchBar } from '@/components/search-bar'
 import { StatusBadge } from '@/components/status-badge'
 import { maskName } from '@/lib/masking'
+import { Pagination } from '@/components/pagination'
 import Link from 'next/link'
 
 interface UserRow {
@@ -24,7 +25,14 @@ const roleBadgeVariants: Record<string, 'purple' | 'info' | 'success' | 'warning
   verifier: 'neutral',
 }
 
-export function UsersList({ users }: { users: UserRow[] }) {
+interface Props {
+  users: UserRow[]
+  totalCount: number
+  currentPage: number
+  pageSize: number
+}
+
+export function UsersList({ users, totalCount, currentPage, pageSize }: Props) {
   const [search, setSearch] = useState('')
   const { effectiveRole } = useRole()
   const role = effectiveRole
@@ -155,6 +163,8 @@ export function UsersList({ users }: { users: UserRow[] }) {
           </p>
         )}
       </div>
+
+      <Pagination currentPage={currentPage} totalCount={totalCount} pageSize={pageSize} />
     </>
   )
 }

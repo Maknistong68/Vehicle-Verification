@@ -5,7 +5,10 @@ import { useRole } from '@/lib/role-context'
 import { SearchBar } from '@/components/search-bar'
 import { StatusBadge, getInspectionResultVariant, getInspectionStatusVariant } from '@/components/status-badge'
 import { maskName, maskPlateNumber } from '@/lib/masking'
+import { createClient } from '@/lib/supabase/client'
+import { Pagination } from '@/components/pagination'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 interface InspectionRow {
   id: string
@@ -27,10 +30,20 @@ function formatCompactDate(dateStr: string): string {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-export function InspectionsList({ inspections }: { inspections: InspectionRow[] }) {
+interface Props {
+  inspections: InspectionRow[]
+  totalCount: number
+  currentPage: number
+  pageSize: number
+}
+
+export function InspectionsList({ inspections, totalCount, currentPage, pageSize }: Props) {
   const [search, setSearch] = useState('')
+  const [cancellingId, setCancellingId] = useState<string | null>(null)
   const { effectiveRole } = useRole()
   const role = effectiveRole
+  const router = useRouter()
+  const canCancel = role === 'owner' || role === 'admin'
 
   const filtered = useMemo(() => {
     if (!search.trim()) return inspections
@@ -44,6 +57,92 @@ export function InspectionsList({ inspections }: { inspections: InspectionRow[] 
       return plate.includes(q) || inspector.includes(q) || type.includes(q) || status.includes(q) || result.includes(q)
     })
   }, [inspections, search, role])
+
+  const handleCancel = async (inspectionId: string) => {
+    if (!confirm('Are you sure you want to cancel this inspection? This action cannot be undone.')) return
+    setCancellingId(inspectionId)
+    const supabase = createClient()
+    const { error } = await supabase.from('inspections').update({ status: 'cancelled' }).eq('id', inspectionId)
+    if (error) {
+      alert('Failed to cancel inspection: ' + error.message)
+    }
+    setCancellingId(null)
+    router.refresh()
+  }
+
+  function renderActions(insp: InspectionRow) {
+    const actions: React.ReactNode[] = []
+
+    // View is always available
+    actions.push(
+      <Link key="view" href={`/inspections/${insp.id}`} className="text-sm text-emerald-600 hover:text-emerald-500 font-medium">
+        View
+      </Link>
+    )
+
+    // Inspector: Submit
+    if (role === 'inspector' && insp.status !== 'completed' && insp.status !== 'cancelled') {
+      actions.push(
+        <Link key="submit" href={`/inspections/${insp.id}/submit`} className="text-sm text-blue-600 hover:text-blue-500 font-medium">
+          Submit
+        </Link>
+      )
+    }
+
+    // Verifier: Verify
+    if (role === 'verifier' && insp.status === 'completed' && !insp.verified_at) {
+      actions.push(
+        <Link key="verify" href={`/inspections/${insp.id}/verify`} className="text-sm text-purple-600 hover:text-purple-500 font-medium">
+          Verify
+        </Link>
+      )
+    }
+
+    // Owner/Admin: Cancel
+    if (canCancel && insp.status !== 'completed' && insp.status !== 'cancelled') {
+      actions.push(
+        <button
+          key="cancel"
+          onClick={() => handleCancel(insp.id)}
+          disabled={cancellingId === insp.id}
+          className="text-sm text-red-600 hover:text-red-500 font-medium disabled:opacity-50"
+        >
+          {cancellingId === insp.id ? 'Cancelling...' : 'Cancel'}
+        </button>
+      )
+    }
+
+    return <div className="flex items-center gap-3">{actions}</div>
+  }
+
+  function renderMobileActions(insp: InspectionRow) {
+    if (role === 'inspector' && insp.status !== 'completed' && insp.status !== 'cancelled') {
+      return (
+        <div className="flex items-center gap-3">
+          <Link href={`/inspections/${insp.id}/submit`} className="text-emerald-600 font-medium">Submit</Link>
+          <Link href={`/inspections/${insp.id}`} className="text-gray-400">View</Link>
+        </div>
+      )
+    }
+    if (role === 'verifier' && insp.status === 'completed' && !insp.verified_at) {
+      return (
+        <div className="flex items-center gap-3">
+          <Link href={`/inspections/${insp.id}/verify`} className="text-emerald-600 font-medium">Verify</Link>
+          <Link href={`/inspections/${insp.id}`} className="text-gray-400">View</Link>
+        </div>
+      )
+    }
+    return (
+      <div className="flex items-center gap-3">
+        <Link href={`/inspections/${insp.id}`} className="text-emerald-600 font-medium">View</Link>
+        {canCancel && insp.status !== 'completed' && insp.status !== 'cancelled' && (
+          <button onClick={() => handleCancel(insp.id)} disabled={cancellingId === insp.id} className="text-red-500 font-medium disabled:opacity-50 text-xs">
+            {cancellingId === insp.id ? '...' : 'Cancel'}
+          </button>
+        )}
+      </div>
+    )
+  }
 
   return (
     <>
@@ -62,7 +161,7 @@ export function InspectionsList({ inspections }: { inspections: InspectionRow[] 
                 <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Status</th>
                 <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Scheduled</th>
                 <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Verified</th>
-                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Action</th>
+                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -78,15 +177,7 @@ export function InspectionsList({ inspections }: { inspections: InspectionRow[] 
                   <td className="p-4"><StatusBadge label={insp.status.replace('_', ' ')} variant={getInspectionStatusVariant(insp.status)} /></td>
                   <td className="p-4 text-sm text-gray-500">{new Date(insp.scheduled_date).toLocaleDateString()}</td>
                   <td className="p-4 text-sm">{insp.verified_at ? <span className="text-green-600">Verified</span> : <span className="text-gray-300">{'\u2014'}</span>}</td>
-                  <td className="p-4">
-                    {role === 'inspector' && insp.status !== 'completed' && insp.status !== 'cancelled' ? (
-                      <Link href={`/inspections/${insp.id}/submit`} className="text-sm text-emerald-600 hover:text-emerald-500 font-medium">Submit Result</Link>
-                    ) : role === 'verifier' && insp.status === 'completed' && !insp.verified_at ? (
-                      <Link href={`/inspections/${insp.id}/verify`} className="text-sm text-emerald-600 hover:text-emerald-500 font-medium">Verify</Link>
-                    ) : (
-                      <Link href={`/inspections/${insp.id}`} className="text-sm text-emerald-600 hover:text-emerald-500 font-medium">View</Link>
-                    )}
-                  </td>
+                  <td className="p-4">{renderActions(insp)}</td>
                 </tr>
               ))}
               {filtered.length === 0 && (
@@ -118,13 +209,7 @@ export function InspectionsList({ inspections }: { inspections: InspectionRow[] 
             </div>
             <div className="flex items-center justify-between text-xs mt-2 pt-2 border-t border-gray-100">
               <span className="text-gray-400">{formatCompactDate(insp.scheduled_date)}</span>
-              {role === 'inspector' && insp.status !== 'completed' && insp.status !== 'cancelled' ? (
-                <Link href={`/inspections/${insp.id}/submit`} className="text-emerald-600 font-medium">Submit Result</Link>
-              ) : role === 'verifier' && insp.status === 'completed' && !insp.verified_at ? (
-                <Link href={`/inspections/${insp.id}/verify`} className="text-emerald-600 font-medium">Verify</Link>
-              ) : (
-                <Link href={`/inspections/${insp.id}`} className="text-emerald-600 font-medium">View</Link>
-              )}
+              {renderMobileActions(insp)}
             </div>
           </div>
         ))}
@@ -138,6 +223,8 @@ export function InspectionsList({ inspections }: { inspections: InspectionRow[] 
           </div>
         )}
       </div>
+
+      <Pagination currentPage={currentPage} totalCount={totalCount} pageSize={pageSize} />
     </>
   )
 }

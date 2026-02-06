@@ -5,7 +5,14 @@ import { UserRole } from '@/lib/types'
 import Link from 'next/link'
 import { AppointmentsList } from './appointments-list'
 
-export default async function AppointmentsPage() {
+const PAGE_SIZE = 25
+
+export default async function AppointmentsPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
+  const { page: pageParam } = await searchParams
+  const currentPage = Math.max(1, parseInt(pageParam || '1', 10) || 1)
+  const from = (currentPage - 1) * PAGE_SIZE
+  const to = from + PAGE_SIZE - 1
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -19,6 +26,16 @@ export default async function AppointmentsPage() {
   if (!profile) redirect('/login')
   const role = profile.role as UserRole
 
+  // Count query
+  let countQuery = supabase
+    .from('appointments')
+    .select('*', { count: 'exact', head: true })
+  if (role === 'inspector') {
+    countQuery = countQuery.eq('inspector_id', user.id)
+  }
+  const { count: totalCount } = await countQuery
+
+  // Data query with pagination
   let query = supabase
     .from('appointments')
     .select(`
@@ -28,6 +45,7 @@ export default async function AppointmentsPage() {
       scheduler:user_profiles!appointments_scheduled_by_fkey(full_name)
     `)
     .order('scheduled_date', { ascending: false })
+    .range(from, to)
 
   if (role === 'inspector') {
     query = query.eq('inspector_id', user.id)
@@ -57,7 +75,12 @@ export default async function AppointmentsPage() {
         }
       />
 
-      <AppointmentsList appointments={(appointments || []) as any} />
+      <AppointmentsList
+        appointments={(appointments || []) as any}
+        totalCount={totalCount ?? 0}
+        currentPage={currentPage}
+        pageSize={PAGE_SIZE}
+      />
     </>
   )
 }

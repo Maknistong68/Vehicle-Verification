@@ -5,7 +5,14 @@ import { UserRole } from '@/lib/types'
 import Link from 'next/link'
 import { VehiclesList } from './vehicles-list'
 
-export default async function VehiclesPage() {
+const PAGE_SIZE = 25
+
+export default async function VehiclesPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
+  const { page: pageParam } = await searchParams
+  const currentPage = Math.max(1, parseInt(pageParam || '1', 10) || 1)
+  const from = (currentPage - 1) * PAGE_SIZE
+  const to = from + PAGE_SIZE - 1
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -19,6 +26,10 @@ export default async function VehiclesPage() {
   if (!profile) redirect('/login')
   const role = profile.role as UserRole
 
+  const { count: totalCount } = await supabase
+    .from('vehicles_equipment')
+    .select('*', { count: 'exact', head: true })
+
   const { data: vehicles } = await supabase
     .from('vehicles_equipment')
     .select(`
@@ -27,6 +38,7 @@ export default async function VehiclesPage() {
       equipment_type:equipment_types(name, category, classification)
     `)
     .order('created_at', { ascending: false })
+    .range(from, to)
 
   const canCreate = role === 'owner' || role === 'admin'
 
@@ -34,7 +46,7 @@ export default async function VehiclesPage() {
     <>
       <PageHeader
         title="Vehicles & Equipment"
-        description={`${vehicles?.length || 0} records found.`}
+        description={`${totalCount ?? 0} records found.`}
         action={
           canCreate ? (
             <Link
@@ -50,7 +62,12 @@ export default async function VehiclesPage() {
         }
       />
 
-      <VehiclesList vehicles={(vehicles || []) as any} />
+      <VehiclesList
+        vehicles={(vehicles || []) as any}
+        totalCount={totalCount ?? 0}
+        currentPage={currentPage}
+        pageSize={PAGE_SIZE}
+      />
     </>
   )
 }

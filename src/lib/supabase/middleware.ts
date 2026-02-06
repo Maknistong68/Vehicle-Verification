@@ -73,9 +73,10 @@ export async function updateSession(request: NextRequest) {
         return NextResponse.redirect(url)
       }
 
-      // Admin-only routes
+      // Admin-only routes (owner + admin)
       const adminRoutes = ['/users', '/vehicles/new', '/appointments/new']
-      if (adminRoutes.some(r => pathname.startsWith(r)) && !['owner', 'admin'].includes(role || '')) {
+      const adminEditPattern = /^\/(vehicles|appointments)\/[^/]+\/edit/
+      if ((adminRoutes.some(r => pathname.startsWith(r)) || adminEditPattern.test(pathname)) && !['owner', 'admin'].includes(role || '')) {
         const url = request.nextUrl.clone()
         url.pathname = '/dashboard'
         return NextResponse.redirect(url)

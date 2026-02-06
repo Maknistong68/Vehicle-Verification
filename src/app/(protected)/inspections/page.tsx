@@ -5,7 +5,14 @@ import { UserRole } from '@/lib/types'
 import Link from 'next/link'
 import { InspectionsList } from './inspections-list'
 
-export default async function InspectionsPage() {
+const PAGE_SIZE = 25
+
+export default async function InspectionsPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
+  const { page: pageParam } = await searchParams
+  const currentPage = Math.max(1, parseInt(pageParam || '1', 10) || 1)
+  const from = (currentPage - 1) * PAGE_SIZE
+  const to = from + PAGE_SIZE - 1
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -19,6 +26,16 @@ export default async function InspectionsPage() {
   if (!profile) redirect('/login')
   const role = profile.role as UserRole
 
+  // Count query
+  let countQuery = supabase
+    .from('inspections')
+    .select('*', { count: 'exact', head: true })
+  if (role === 'inspector') {
+    countQuery = countQuery.eq('assigned_inspector_id', user.id)
+  }
+  const { count: totalCount } = await countQuery
+
+  // Data query with pagination
   let query = supabase
     .from('inspections')
     .select(`
@@ -28,6 +45,7 @@ export default async function InspectionsPage() {
       verifier:user_profiles!inspections_verified_by_fkey(full_name)
     `)
     .order('created_at', { ascending: false })
+    .range(from, to)
 
   if (role === 'inspector') {
     query = query.eq('assigned_inspector_id', user.id)
@@ -50,7 +68,12 @@ export default async function InspectionsPage() {
         ) : undefined}
       />
 
-      <InspectionsList inspections={(inspections || []) as any} />
+      <InspectionsList
+        inspections={(inspections || []) as any}
+        totalCount={totalCount ?? 0}
+        currentPage={currentPage}
+        pageSize={PAGE_SIZE}
+      />
     </>
   )
 }

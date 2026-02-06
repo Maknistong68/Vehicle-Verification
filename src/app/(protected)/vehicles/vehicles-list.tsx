@@ -5,6 +5,8 @@ import { useRole } from '@/lib/role-context'
 import { SearchBar } from '@/components/search-bar'
 import { StatusBadge, getVehicleStatusVariant } from '@/components/status-badge'
 import { maskName, maskPlateNumber, maskNationalId, isMinimalDataRole } from '@/lib/masking'
+import { Pagination } from '@/components/pagination'
+import Link from 'next/link'
 
 interface Vehicle {
   id: string
@@ -40,11 +42,19 @@ function formatCompactDate(dateStr: string | null): string {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-export function VehiclesList({ vehicles }: { vehicles: Vehicle[] }) {
+interface Props {
+  vehicles: Vehicle[]
+  totalCount: number
+  currentPage: number
+  pageSize: number
+}
+
+export function VehiclesList({ vehicles, totalCount, currentPage, pageSize }: Props) {
   const [search, setSearch] = useState('')
   const { effectiveRole } = useRole()
   const role = effectiveRole
   const minimal = isMinimalDataRole(role)
+  const canEdit = role === 'owner' || role === 'admin'
 
   const filtered = useMemo(() => {
     if (!search.trim()) return vehicles
@@ -78,6 +88,7 @@ export function VehiclesList({ vehicles }: { vehicles: Vehicle[] }) {
                 <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Year</th>
                 <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Status</th>
                 <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Next Inspection</th>
+                {canEdit && <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Action</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -108,11 +119,16 @@ export function VehiclesList({ vehicles }: { vehicles: Vehicle[] }) {
                   <td className="p-4 text-sm text-gray-500">
                     {v.next_inspection_date ? new Date(v.next_inspection_date).toLocaleDateString() : '\u2014'}
                   </td>
+                  {canEdit && (
+                    <td className="p-4">
+                      <Link href={`/vehicles/${v.id}/edit`} className="text-sm text-emerald-600 hover:text-emerald-500 font-medium">Edit</Link>
+                    </td>
+                  )}
                 </tr>
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="p-12 text-center">
+                  <td colSpan={canEdit ? 9 : 8} className="p-12 text-center">
                     <svg className="w-10 h-10 text-gray-300 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                     </svg>
@@ -158,9 +174,14 @@ export function VehiclesList({ vehicles }: { vehicles: Vehicle[] }) {
                   </div>
                   <div className="flex items-center justify-between text-xs text-gray-400 mt-2 pt-2 border-t border-gray-100">
                     <span className="truncate mr-2">{truncateCompanyName(v.company?.name)}</span>
-                    <span className="shrink-0 text-gray-500">
-                      {v.next_inspection_date ? formatCompactDate(v.next_inspection_date) : 'No date'}
-                    </span>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className="text-gray-500">
+                        {v.next_inspection_date ? formatCompactDate(v.next_inspection_date) : 'No date'}
+                      </span>
+                      {canEdit && (
+                        <Link href={`/vehicles/${v.id}/edit`} className="text-emerald-600 font-medium">Edit</Link>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -177,6 +198,8 @@ export function VehiclesList({ vehicles }: { vehicles: Vehicle[] }) {
           </div>
         )}
       </div>
+
+      <Pagination currentPage={currentPage} totalCount={totalCount} pageSize={pageSize} />
     </>
   )
 }

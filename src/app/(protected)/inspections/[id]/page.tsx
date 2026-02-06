@@ -4,6 +4,7 @@ import { PageHeader } from '@/components/page-header'
 import { StatusBadge, getInspectionResultVariant, getInspectionStatusVariant } from '@/components/status-badge'
 import { maskName, maskPlateNumber, maskNationalId } from '@/lib/masking'
 import { UserRole } from '@/lib/types'
+import { ReadOnlyChecklist } from '@/components/inspection-checklist'
 import Link from 'next/link'
 
 export default async function InspectionDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -41,6 +42,13 @@ export default async function InspectionDetailPage({ params }: { params: Promise
   if (!inspection) redirect('/inspections')
   const ve = inspection.vehicle_equipment
 
+  // Fetch checklist items for this inspection
+  const { data: checklistItems } = await supabase
+    .from('inspection_checklist_items')
+    .select('id, item_name, item_description, passed, notes')
+    .eq('inspection_id', id)
+    .order('id')
+
   return (
     <>
       <PageHeader title="Inspection Detail" action={<Link href="/inspections" className="text-sm text-gray-500 hover:text-gray-900 transition">{'\u2190'} Back to list</Link>} />
@@ -72,6 +80,13 @@ export default async function InspectionDetailPage({ params }: { params: Promise
           </div>
         </div>
       </div>
+
+      {/* Checklist results */}
+      {checklistItems && checklistItems.length > 0 && (
+        <div className="max-w-4xl mt-6 glass-card p-5 md:p-6">
+          <ReadOnlyChecklist items={checklistItems as any} />
+        </div>
+      )}
     </>
   )
 }
