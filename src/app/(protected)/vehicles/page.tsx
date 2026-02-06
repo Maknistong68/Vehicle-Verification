@@ -27,7 +27,6 @@ export default async function VehiclesPage() {
       equipment_type:equipment_types(name, category, classification)
     `)
     .order('created_at', { ascending: false })
-    .limit(200)
 
   const canCreate = role === 'owner' || role === 'admin'
 
