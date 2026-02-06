@@ -10,7 +10,7 @@ export function SearchBar({ value, onChange, placeholder = 'Search...' }: Search
   return (
     <div className="relative mb-4">
       <svg
-        className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 pointer-events-none"
+        className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"
@@ -27,7 +27,7 @@ export function SearchBar({ value, onChange, placeholder = 'Search...' }: Search
       {value && (
         <button
           onClick={() => onChange('')}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

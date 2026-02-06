@@ -105,50 +105,50 @@ export default async function DashboardPage() {
 
       {/* ── Activity Section ───────────────────────────────── */}
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-1 h-5 rounded-full bg-gradient-to-b from-indigo-400 to-purple-500" />
-        <h2 className="text-base font-semibold text-white tracking-tight">Recent Activity</h2>
+        <div className="w-1 h-5 rounded-full bg-emerald-500" />
+        <h2 className="text-base font-semibold text-gray-900 tracking-tight">Recent Activity</h2>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         <div className="lg:col-span-2 glass-card">
-          <div className="flex items-center justify-between p-4 md:p-5 border-b border-white/10">
-            <h3 className="text-sm font-semibold text-white">Recent Inspections</h3>
-            <Link href="/inspections" className="text-xs text-indigo-400 hover:text-indigo-300 font-medium">View all</Link>
+          <div className="flex items-center justify-between p-4 md:p-5 border-b border-gray-200">
+            <h3 className="text-sm font-semibold text-gray-900">Recent Inspections</h3>
+            <Link href="/inspections" className="text-xs text-emerald-600 hover:text-emerald-500 font-medium">View all</Link>
           </div>
 
           {/* Desktop table */}
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-white/10">
-                  <th className="text-left p-4 text-xs font-medium text-white/40 uppercase">Vehicle</th>
-                  <th className="text-left p-4 text-xs font-medium text-white/40 uppercase">Inspector</th>
-                  <th className="text-left p-4 text-xs font-medium text-white/40 uppercase">Result</th>
-                  <th className="text-left p-4 text-xs font-medium text-white/40 uppercase">Status</th>
-                  <th className="text-left p-4 text-xs font-medium text-white/40 uppercase">Date</th>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Vehicle</th>
+                  <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Inspector</th>
+                  <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Result</th>
+                  <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Status</th>
+                  <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Date</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5">
+              <tbody className="divide-y divide-gray-100">
                 {recentInspections?.map((insp) => (
-                  <tr key={insp.id} className="hover:bg-white/[0.03]">
+                  <tr key={insp.id} className="hover:bg-gray-50">
                     <td className="p-4">
-                      <p className="text-sm text-white">{maskPlateNumber(insp.vehicle_equipment?.plate_number, role)}</p>
-                      <p className="text-xs text-white/40">{maskName(insp.vehicle_equipment?.driver_name, role)}</p>
+                      <p className="text-sm text-gray-900">{maskPlateNumber(insp.vehicle_equipment?.plate_number, role)}</p>
+                      <p className="text-xs text-gray-400">{maskName(insp.vehicle_equipment?.driver_name, role)}</p>
                     </td>
-                    <td className="p-4 text-sm text-white/70">{maskName(insp.inspector?.full_name, role)}</td>
+                    <td className="p-4 text-sm text-gray-600">{maskName(insp.inspector?.full_name, role)}</td>
                     <td className="p-4"><StatusBadge label={insp.result} variant={getInspectionResultVariant(insp.result)} /></td>
                     <td className="p-4"><StatusBadge label={insp.status.replace('_', ' ')} variant={getInspectionStatusVariant(insp.status)} /></td>
-                    <td className="p-4 text-sm text-white/50">{new Date(insp.scheduled_date).toLocaleDateString()}</td>
+                    <td className="p-4 text-sm text-gray-500">{new Date(insp.scheduled_date).toLocaleDateString()}</td>
                   </tr>
                 ))}
                 {(!recentInspections || recentInspections.length === 0) && (
                   <tr>
                     <td colSpan={5} className="p-12 text-center">
-                      <svg className="w-10 h-10 text-white/20 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-10 h-10 text-gray-300 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                       </svg>
-                      <p className="text-white/40 text-sm">No inspections yet</p>
-                      <p className="text-white/25 text-xs mt-1">Create your first inspection to get started</p>
+                      <p className="text-gray-400 text-sm">No inspections yet</p>
+                      <p className="text-gray-300 text-xs mt-1">Create your first inspection to get started</p>
                     </td>
                   </tr>
                 )}
@@ -163,12 +163,12 @@ export default async function DashboardPage() {
               <div key={insp.id} className="glass-card-interactive p-3">
                 <div className="flex items-start justify-between mb-1.5">
                   <div>
-                    <p className="text-sm font-medium text-white">{maskPlateNumber(insp.vehicle_equipment?.plate_number, role)}</p>
-                    <p className="text-xs text-white/40">{maskName(insp.vehicle_equipment?.driver_name, role)}</p>
+                    <p className="text-sm font-medium text-gray-900">{maskPlateNumber(insp.vehicle_equipment?.plate_number, role)}</p>
+                    <p className="text-xs text-gray-400">{maskName(insp.vehicle_equipment?.driver_name, role)}</p>
                   </div>
                   <StatusBadge label={insp.result} variant={getInspectionResultVariant(insp.result)} />
                 </div>
-                <div className="flex items-center justify-between text-xs text-white/50 pt-1.5 border-t border-white/5">
+                <div className="flex items-center justify-between text-xs text-gray-500 pt-1.5 border-t border-gray-100">
                   <span>{maskName(insp.inspector?.full_name, role)}</span>
                   <span>{new Date(insp.scheduled_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                 </div>
@@ -176,11 +176,11 @@ export default async function DashboardPage() {
             ))}
             {(!recentInspections || recentInspections.length === 0) && (
               <div className="text-center py-10">
-                <svg className="w-10 h-10 text-white/20 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-10 h-10 text-gray-300 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                 </svg>
-                <p className="text-white/40 text-sm">No inspections yet</p>
-                <p className="text-white/25 text-xs mt-1">Create your first inspection to get started</p>
+                <p className="text-gray-400 text-sm">No inspections yet</p>
+                <p className="text-gray-300 text-xs mt-1">Create your first inspection to get started</p>
               </div>
             )}
           </div>
@@ -188,30 +188,30 @@ export default async function DashboardPage() {
 
         {(role === 'owner' || role === 'admin') && (
           <div className="glass-card">
-            <div className="p-4 md:p-5 border-b border-white/10">
-              <h3 className="text-sm font-semibold text-white">Inspector Workload</h3>
-              <p className="text-xs text-white/40 mt-1">Active assignments</p>
+            <div className="p-4 md:p-5 border-b border-gray-200">
+              <h3 className="text-sm font-semibold text-gray-900">Inspector Workload</h3>
+              <p className="text-xs text-gray-400 mt-1">Active assignments</p>
             </div>
             <div className="p-3 md:p-4 space-y-2">
               {inspectorWorkload.map((insp, idx) => (
-                <div key={idx} className="flex items-center justify-between p-2.5 bg-white/[0.03] rounded-lg">
+                <div key={idx} className="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full gradient-blue-purple flex items-center justify-center text-xs font-medium text-white">
+                    <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-xs font-medium text-white">
                       {insp.full_name?.charAt(0)?.toUpperCase() || '?'}
                     </div>
-                    <span className="text-sm text-white/70">{maskName(insp.full_name, role)}</span>
+                    <span className="text-sm text-gray-600">{maskName(insp.full_name, role)}</span>
                   </div>
-                  <span className={`text-sm font-medium ${insp.count > 5 ? 'text-red-400' : insp.count > 2 ? 'text-yellow-400' : 'text-green-400'}`}>
+                  <span className={`text-sm font-medium ${insp.count > 5 ? 'text-red-500' : insp.count > 2 ? 'text-yellow-500' : 'text-green-500'}`}>
                     {insp.count} active
                   </span>
                 </div>
               ))}
               {inspectorWorkload.length === 0 && (
                 <div className="text-center py-6">
-                  <svg className="w-8 h-8 text-white/20 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-8 h-8 text-gray-300 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
-                  <p className="text-white/40 text-xs">No active assignments</p>
+                  <p className="text-gray-400 text-xs">No active assignments</p>
                 </div>
               )}
             </div>

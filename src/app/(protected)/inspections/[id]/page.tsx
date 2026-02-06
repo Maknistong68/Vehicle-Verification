@@ -43,32 +43,32 @@ export default async function InspectionDetailPage({ params }: { params: Promise
 
   return (
     <>
-      <PageHeader title="Inspection Detail" action={<Link href="/inspections" className="text-sm text-white/50 hover:text-white transition">{'\u2190'} Back to list</Link>} />
+      <PageHeader title="Inspection Detail" action={<Link href="/inspections" className="text-sm text-gray-500 hover:text-gray-900 transition">{'\u2190'} Back to list</Link>} />
       <div className="max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="glass-card p-5 md:p-6 space-y-4">
-          <h3 className="text-sm font-medium text-white/40 uppercase">Inspection Info</h3>
+          <h3 className="text-sm font-medium text-gray-400 uppercase">Inspection Info</h3>
           <div className="space-y-3">
-            <div className="flex justify-between"><span className="text-sm text-white/40">Type</span><span className="text-sm text-white capitalize">{inspection.inspection_type.replace('_', ' ')}</span></div>
-            <div className="flex justify-between"><span className="text-sm text-white/40">Result</span><StatusBadge label={inspection.result} variant={getInspectionResultVariant(inspection.result)} /></div>
-            <div className="flex justify-between"><span className="text-sm text-white/40">Status</span><StatusBadge label={inspection.status.replace('_', ' ')} variant={getInspectionStatusVariant(inspection.status)} /></div>
-            <div className="flex justify-between"><span className="text-sm text-white/40">Scheduled</span><span className="text-sm text-white">{new Date(inspection.scheduled_date).toLocaleString()}</span></div>
-            {inspection.completed_at && <div className="flex justify-between"><span className="text-sm text-white/40">Completed</span><span className="text-sm text-white">{new Date(inspection.completed_at).toLocaleString()}</span></div>}
-            <div className="flex justify-between"><span className="text-sm text-white/40">Inspector</span><span className="text-sm text-white">{maskName(inspection.inspector?.full_name, role)}</span></div>
-            {inspection.verified_at && <div className="flex justify-between"><span className="text-sm text-white/40">Verified By</span><span className="text-sm text-green-400">{maskName(inspection.verifier?.full_name, role)}</span></div>}
-            {inspection.failure_reason && <div><span className="text-sm text-white/40">Failure Reason</span><p className="text-sm text-red-300 mt-1">{inspection.failure_reason}</p></div>}
-            {inspection.notes && <div><span className="text-sm text-white/40">Notes</span><p className="text-sm text-white/70 mt-1">{inspection.notes}</p></div>}
+            <div className="flex justify-between"><span className="text-sm text-gray-400">Type</span><span className="text-sm text-gray-900 capitalize">{inspection.inspection_type.replace('_', ' ')}</span></div>
+            <div className="flex justify-between"><span className="text-sm text-gray-400">Result</span><StatusBadge label={inspection.result} variant={getInspectionResultVariant(inspection.result)} /></div>
+            <div className="flex justify-between"><span className="text-sm text-gray-400">Status</span><StatusBadge label={inspection.status.replace('_', ' ')} variant={getInspectionStatusVariant(inspection.status)} /></div>
+            <div className="flex justify-between"><span className="text-sm text-gray-400">Scheduled</span><span className="text-sm text-gray-900">{new Date(inspection.scheduled_date).toLocaleString()}</span></div>
+            {inspection.completed_at && <div className="flex justify-between"><span className="text-sm text-gray-400">Completed</span><span className="text-sm text-gray-900">{new Date(inspection.completed_at).toLocaleString()}</span></div>}
+            <div className="flex justify-between"><span className="text-sm text-gray-400">Inspector</span><span className="text-sm text-gray-900">{maskName(inspection.inspector?.full_name, role)}</span></div>
+            {inspection.verified_at && <div className="flex justify-between"><span className="text-sm text-gray-400">Verified By</span><span className="text-sm text-green-600">{maskName(inspection.verifier?.full_name, role)}</span></div>}
+            {inspection.failure_reason && <div><span className="text-sm text-gray-400">Failure Reason</span><p className="text-sm text-red-600 mt-1">{inspection.failure_reason}</p></div>}
+            {inspection.notes && <div><span className="text-sm text-gray-400">Notes</span><p className="text-sm text-gray-600 mt-1">{inspection.notes}</p></div>}
           </div>
         </div>
         <div className="glass-card p-5 md:p-6 space-y-4">
-          <h3 className="text-sm font-medium text-white/40 uppercase">Vehicle / Equipment</h3>
+          <h3 className="text-sm font-medium text-gray-400 uppercase">Vehicle / Equipment</h3>
           <div className="space-y-3">
-            <div className="flex justify-between"><span className="text-sm text-white/40">Plate Number</span><span className="text-sm text-white">{maskPlateNumber(ve?.plate_number, role)}</span></div>
-            <div className="flex justify-between"><span className="text-sm text-white/40">Driver</span><span className="text-sm text-white">{maskName(ve?.driver_name, role)}</span></div>
-            <div className="flex justify-between"><span className="text-sm text-white/40">National ID</span><span className="text-sm text-white">{maskNationalId(ve?.national_id, role)}</span></div>
-            <div className="flex justify-between"><span className="text-sm text-white/40">Equipment</span><span className="text-sm text-white">{ve?.equipment_type?.name || '\u2014'}</span></div>
-            <div className="flex justify-between"><span className="text-sm text-white/40">Company</span><span className="text-sm text-white">{ve?.company?.name || '\u2014'}</span></div>
-            <div className="flex justify-between"><span className="text-sm text-white/40">Year</span><span className="text-sm text-white">{ve?.year_of_manufacture || '\u2014'}</span></div>
-            <div className="flex justify-between"><span className="text-sm text-white/40">Project</span><span className="text-sm text-white">{ve?.project || '\u2014'}</span></div>
+            <div className="flex justify-between"><span className="text-sm text-gray-400">Plate Number</span><span className="text-sm text-gray-900">{maskPlateNumber(ve?.plate_number, role)}</span></div>
+            <div className="flex justify-between"><span className="text-sm text-gray-400">Driver</span><span className="text-sm text-gray-900">{maskName(ve?.driver_name, role)}</span></div>
+            <div className="flex justify-between"><span className="text-sm text-gray-400">National ID</span><span className="text-sm text-gray-900">{maskNationalId(ve?.national_id, role)}</span></div>
+            <div className="flex justify-between"><span className="text-sm text-gray-400">Equipment</span><span className="text-sm text-gray-900">{ve?.equipment_type?.name || '\u2014'}</span></div>
+            <div className="flex justify-between"><span className="text-sm text-gray-400">Company</span><span className="text-sm text-gray-900">{ve?.company?.name || '\u2014'}</span></div>
+            <div className="flex justify-between"><span className="text-sm text-gray-400">Year</span><span className="text-sm text-gray-900">{ve?.year_of_manufacture || '\u2014'}</span></div>
+            <div className="flex justify-between"><span className="text-sm text-gray-400">Project</span><span className="text-sm text-gray-900">{ve?.project || '\u2014'}</span></div>
           </div>
         </div>
       </div>

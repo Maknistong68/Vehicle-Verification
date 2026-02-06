@@ -6,26 +6,26 @@ interface StatusBadgeProps {
 }
 
 const variantStyles: Record<BadgeVariant, string> = {
-  success: 'bg-green-500/15 text-green-200 border-green-500/25 shadow-green-500/10',
-  danger: 'bg-red-500/15 text-red-200 border-red-500/25 shadow-red-500/10',
-  warning: 'bg-yellow-500/15 text-yellow-200 border-yellow-500/25 shadow-yellow-500/10',
-  info: 'bg-blue-500/15 text-blue-200 border-blue-500/25 shadow-blue-500/10',
-  neutral: 'bg-white/10 text-white/70 border-white/15 shadow-white/5',
-  purple: 'bg-purple-500/15 text-purple-200 border-purple-500/25 shadow-purple-500/10',
+  success: 'bg-green-50 text-green-700 border-green-200',
+  danger: 'bg-red-50 text-red-700 border-red-200',
+  warning: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+  info: 'bg-blue-50 text-blue-700 border-blue-200',
+  neutral: 'bg-gray-50 text-gray-600 border-gray-200',
+  purple: 'bg-purple-50 text-purple-700 border-purple-200',
 }
 
 const dotColors: Record<BadgeVariant, string> = {
-  success: 'bg-green-400',
-  danger: 'bg-red-400',
-  warning: 'bg-yellow-400',
-  info: 'bg-blue-400',
-  neutral: 'bg-white/50',
-  purple: 'bg-purple-400',
+  success: 'bg-green-500',
+  danger: 'bg-red-500',
+  warning: 'bg-yellow-500',
+  info: 'bg-blue-500',
+  neutral: 'bg-gray-400',
+  purple: 'bg-purple-500',
 }
 
 export function StatusBadge({ label, variant }: StatusBadgeProps) {
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full border backdrop-blur-sm shadow-sm capitalize ${variantStyles[variant]}`}>
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full border shadow-sm capitalize ${variantStyles[variant]}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${dotColors[variant]}`} />
       {label}
     </span>

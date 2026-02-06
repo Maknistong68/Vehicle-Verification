@@ -86,12 +86,12 @@ export default function SetupPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <h1 className="text-2xl font-bold text-white mb-2">VVS1 Setup</h1>
-        <p className="text-white/50 text-sm mb-6">Create the Owner account. Only use this once.</p>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">VVS1 Setup</h1>
+        <p className="text-gray-500 text-sm mb-6">Create the Owner account. Only use this once.</p>
 
-        <form onSubmit={handleCreate} className="glass-card p-6 md:p-8 shadow-2xl shadow-indigo-500/5 space-y-4">
+        <form onSubmit={handleCreate} className="glass-card p-6 md:p-8 shadow-lg space-y-4">
           <div>
-            <label className="block text-sm font-medium text-white/70 mb-1">Full Name</label>
+            <label className="block text-sm font-medium text-gray-600 mb-1">Full Name</label>
             <input
               type="text"
               required
@@ -101,7 +101,7 @@ export default function SetupPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-white/70 mb-1">Email</label>
+            <label className="block text-sm font-medium text-gray-600 mb-1">Email</label>
             <input
               type="email"
               required
@@ -111,7 +111,7 @@ export default function SetupPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-white/70 mb-1">Password</label>
+            <label className="block text-sm font-medium text-gray-600 mb-1">Password</label>
             <input
               type="password"
               required
@@ -124,15 +124,15 @@ export default function SetupPage() {
           </div>
 
           {error && (
-            <div className="p-3 glass-card border-red-400/25">
-              <p className="text-sm text-red-300">{error}</p>
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-600">{error}</p>
             </div>
           )}
 
           {message && (
-            <div className="p-3 glass-card border-emerald-400/25">
-              <p className="text-sm text-emerald-300">{message}</p>
-              <a href="/login" className="text-sm text-indigo-400 underline mt-2 inline-block">Go to Login</a>
+            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+              <p className="text-sm text-emerald-700">{message}</p>
+              <a href="/login" className="text-sm text-emerald-600 underline mt-2 inline-block">Go to Login</a>
             </div>
           )}
 

@@ -25,7 +25,7 @@ export default async function VerifyInspectionPage({ params }: { params: Promise
     <>
       <PageHeader title="Verify Inspection Result" description="Review and confirm the inspection outcome." />
       <div className="max-w-2xl space-y-6">
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-4">
+        <div className="bg-white border border-gray-200 shadow-sm rounded-xl p-6 space-y-4">
           <h3 className="text-sm font-medium text-gray-400">Inspection Details</h3>
           <div className="grid grid-cols-2 gap-4">
             <div><p className="text-xs text-gray-500">Vehicle</p><p className="text-sm text-white">{inspection.vehicle_equipment?.plate_number}</p></div>

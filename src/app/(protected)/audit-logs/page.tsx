@@ -20,7 +20,6 @@ export default async function AuditLogsPage() {
     .from('audit_logs')
     .select('*')
     .order('created_at', { ascending: false })
-    .limit(200)
 
   return (
     <>
@@ -31,8 +30,8 @@ export default async function AuditLogsPage() {
 
       <AuditLogsList logs={(logs || []) as any} />
 
-      <div className="mt-4 p-4 glass-card border-yellow-400/20">
-        <p className="text-xs text-yellow-300/80">
+      <div className="mt-4 p-4 glass-card border-amber-200">
+        <p className="text-xs text-amber-700">
           Audit logs are immutable and cannot be edited or deleted. All user actions are automatically recorded.
         </p>
       </div>
