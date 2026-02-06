@@ -129,10 +129,10 @@ export function CreateInspectionForm({ vehicles: initialVehicles, inspectors, eq
       <form onSubmit={handleSubmit} className="glass-card p-5 md:p-6 space-y-5">
         {/* Vehicle searchable combobox */}
         <div>
-          <label className="block text-sm font-medium text-white/70 mb-1.5">Vehicle / Equipment</label>
+          <label className="block text-sm font-medium text-gray-600 mb-1.5">Vehicle / Equipment</label>
           <div ref={vehicleRef} className="relative">
             <div className="relative">
-              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               <input
@@ -157,7 +157,7 @@ export function CreateInspectionForm({ vehicles: initialVehicles, inspectors, eq
             </div>
 
             {showVehicleDropdown && (
-              <div className="absolute z-20 w-full mt-1 glass-card-strong border border-white/10 rounded-lg max-h-60 overflow-y-auto">
+              <div className="absolute z-20 w-full mt-1 glass-card-strong border border-gray-200 rounded-lg max-h-60 overflow-y-auto">
                 {filteredVehicles.length > 0 ? (
                   filteredVehicles.map(v => (
                     <button
@@ -168,26 +168,26 @@ export function CreateInspectionForm({ vehicles: initialVehicles, inspectors, eq
                         setVehicleSearch(v.plate_number + (v.driver_name ? ' \u2014 ' + v.driver_name : ''))
                         setShowVehicleDropdown(false)
                       }}
-                      className={`w-full text-left px-4 py-2.5 text-sm hover:bg-white/[0.05] transition-colors ${
-                        selectedVehicleId === v.id ? 'bg-white/10 text-white' : 'text-white/70'
+                      className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${
+                        selectedVehicleId === v.id ? 'bg-gray-100 text-gray-900' : 'text-gray-600'
                       }`}
                     >
-                      <span className="font-medium text-white">{v.plate_number}</span>
-                      <span className="text-white/40"> {'\u2014'} {v.driver_name || 'No driver'}</span>
+                      <span className="font-medium text-gray-900">{v.plate_number}</span>
+                      <span className="text-gray-400"> {'\u2014'} {v.driver_name || 'No driver'}</span>
                     </button>
                   ))
                 ) : (
-                  <div className="px-4 py-3 text-sm text-white/40">
+                  <div className="px-4 py-3 text-sm text-gray-400">
                     {vehicleSearch ? 'No vehicles match your search' : 'Type to search...'}
                   </div>
                 )}
 
                 {/* Add new vehicle toggle */}
-                <div className="border-t border-white/10">
+                <div className="border-t border-gray-200">
                   <button
                     type="button"
                     onClick={() => { setShowAddVehicle(!showAddVehicle); setShowVehicleDropdown(false) }}
-                    className="w-full text-left px-4 py-2.5 text-sm text-indigo-400 hover:bg-white/[0.05] transition-colors font-medium"
+                    className="w-full text-left px-4 py-2.5 text-sm text-emerald-600 hover:bg-gray-50 transition-colors font-medium"
                   >
                     + Vehicle not listed? Add new
                   </button>
@@ -198,10 +198,10 @@ export function CreateInspectionForm({ vehicles: initialVehicles, inspectors, eq
 
           {/* Inline add vehicle form */}
           {showAddVehicle && (
-            <div className="mt-3 p-4 glass-card border border-indigo-500/20 rounded-lg space-y-3">
-              <p className="text-xs font-medium text-indigo-300 uppercase tracking-wider">Add New Vehicle</p>
+            <div className="mt-3 p-4 glass-card border border-emerald-200 rounded-lg space-y-3">
+              <p className="text-xs font-medium text-emerald-600 uppercase tracking-wider">Add New Vehicle</p>
               <div>
-                <label className="block text-xs text-white/50 mb-1">Plate Number *</label>
+                <label className="block text-xs text-gray-500 mb-1">Plate Number *</label>
                 <input
                   type="text"
                   value={newPlate}
@@ -211,7 +211,7 @@ export function CreateInspectionForm({ vehicles: initialVehicles, inspectors, eq
                 />
               </div>
               <div>
-                <label className="block text-xs text-white/50 mb-1">Driver Name (optional)</label>
+                <label className="block text-xs text-gray-500 mb-1">Driver Name (optional)</label>
                 <input
                   type="text"
                   value={newDriver}
@@ -221,7 +221,7 @@ export function CreateInspectionForm({ vehicles: initialVehicles, inspectors, eq
                 />
               </div>
               <div>
-                <label className="block text-xs text-white/50 mb-1">Equipment Type (optional)</label>
+                <label className="block text-xs text-gray-500 mb-1">Equipment Type (optional)</label>
                 <select
                   value={newEquipmentTypeId}
                   onChange={(e) => setNewEquipmentTypeId(e.target.value)}
@@ -259,8 +259,8 @@ export function CreateInspectionForm({ vehicles: initialVehicles, inspectors, eq
         {/* Inspector field */}
         {isInspector ? (
           <div>
-            <label className="block text-sm font-medium text-white/70 mb-1.5">Inspector</label>
-            <div className="glass-input text-sm text-white/50 flex items-center">
+            <label className="block text-sm font-medium text-gray-600 mb-1.5">Inspector</label>
+            <div className="glass-input text-sm text-gray-500 flex items-center">
               <svg className="w-4 h-4 mr-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
@@ -269,7 +269,7 @@ export function CreateInspectionForm({ vehicles: initialVehicles, inspectors, eq
           </div>
         ) : (
           <div>
-            <label className="block text-sm font-medium text-white/70 mb-1.5">Assign Inspector</label>
+            <label className="block text-sm font-medium text-gray-600 mb-1.5">Assign Inspector</label>
             <select name="inspector_id" required className="glass-input">
               <option value="">Select inspector...</option>
               {inspectors.map(i => <option key={i.id} value={i.id}>{i.full_name}</option>)}
@@ -278,7 +278,7 @@ export function CreateInspectionForm({ vehicles: initialVehicles, inspectors, eq
         )}
 
         <div>
-          <label className="block text-sm font-medium text-white/70 mb-1.5">Inspection Type</label>
+          <label className="block text-sm font-medium text-gray-600 mb-1.5">Inspection Type</label>
           <select name="inspection_type" required className="glass-input">
             <option value="routine">Routine</option>
             <option value="follow_up">Follow Up</option>
@@ -286,14 +286,14 @@ export function CreateInspectionForm({ vehicles: initialVehicles, inspectors, eq
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-white/70 mb-1.5">Scheduled Date</label>
+          <label className="block text-sm font-medium text-gray-600 mb-1.5">Scheduled Date</label>
           <input type="datetime-local" name="scheduled_date" required className="glass-input" />
         </div>
         <div>
-          <label className="block text-sm font-medium text-white/70 mb-1.5">Notes (optional)</label>
+          <label className="block text-sm font-medium text-gray-600 mb-1.5">Notes (optional)</label>
           <textarea name="notes" rows={3} className="glass-input" placeholder="Additional notes..." />
         </div>
-        {error && <div className="p-3 glass-card border-red-400/25"><p className="text-sm text-red-300">{error}</p></div>}
+        {error && <div className="p-3 bg-red-50 border border-red-200 rounded-lg"><p className="text-sm text-red-600">{error}</p></div>}
         <div className="flex flex-col sm:flex-row gap-3 pt-2">
           <button type="submit" disabled={loading} className="btn-primary">{loading ? 'Creating...' : 'Create Inspection'}</button>
           <button type="button" onClick={() => router.back()} className="btn-secondary">Cancel</button>

@@ -28,11 +28,11 @@ export default async function VerifyInspectionPage({ params }: { params: Promise
         <div className="bg-white border border-gray-200 shadow-sm rounded-xl p-6 space-y-4">
           <h3 className="text-sm font-medium text-gray-400">Inspection Details</h3>
           <div className="grid grid-cols-2 gap-4">
-            <div><p className="text-xs text-gray-500">Vehicle</p><p className="text-sm text-white">{inspection.vehicle_equipment?.plate_number}</p></div>
+            <div><p className="text-xs text-gray-500">Vehicle</p><p className="text-sm text-gray-900">{inspection.vehicle_equipment?.plate_number}</p></div>
             <div><p className="text-xs text-gray-500">Result</p><StatusBadge label={inspection.result} variant={getInspectionResultVariant(inspection.result)} /></div>
-            <div><p className="text-xs text-gray-500">Completed</p><p className="text-sm text-white">{inspection.completed_at ? new Date(inspection.completed_at).toLocaleString() : '\u2014'}</p></div>
-            {inspection.failure_reason && <div className="col-span-2"><p className="text-xs text-gray-500">Failure Reason</p><p className="text-sm text-red-400">{inspection.failure_reason}</p></div>}
-            {inspection.notes && <div className="col-span-2"><p className="text-xs text-gray-500">Notes</p><p className="text-sm text-gray-300">{inspection.notes}</p></div>}
+            <div><p className="text-xs text-gray-500">Completed</p><p className="text-sm text-gray-900">{inspection.completed_at ? new Date(inspection.completed_at).toLocaleString() : '\u2014'}</p></div>
+            {inspection.failure_reason && <div className="col-span-2"><p className="text-xs text-gray-500">Failure Reason</p><p className="text-sm text-red-600">{inspection.failure_reason}</p></div>}
+            {inspection.notes && <div className="col-span-2"><p className="text-xs text-gray-500">Notes</p><p className="text-sm text-gray-600">{inspection.notes}</p></div>}
           </div>
         </div>
         <VerifyForm inspectionId={inspection.id} />

@@ -104,10 +104,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* ── Activity Section ───────────────────────────────── */}
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-1 h-5 rounded-full bg-emerald-500" />
-        <h2 className="text-base font-semibold text-gray-900 tracking-tight">Recent Activity</h2>
-      </div>
+      <h2 className="text-base font-semibold text-gray-900 tracking-tight mb-4">Recent Activity</h2>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         <div className="lg:col-span-2 glass-card">

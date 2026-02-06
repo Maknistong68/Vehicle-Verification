@@ -48,7 +48,7 @@ export function CreateAppointmentForm({ vehicles, inspectors }: Props) {
     <div className="max-w-2xl">
       <form onSubmit={handleSubmit} className="glass-card p-5 md:p-6 space-y-5">
         <div>
-          <label className="block text-sm font-medium text-white/70 mb-1.5">Vehicle / Equipment</label>
+          <label className="block text-sm font-medium text-gray-600 mb-1.5">Vehicle / Equipment</label>
           <select name="vehicle_id" required className="glass-input">
             <option value="">Select vehicle or equipment...</option>
             {vehicles.map(v => (
@@ -58,7 +58,7 @@ export function CreateAppointmentForm({ vehicles, inspectors }: Props) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-white/70 mb-1.5">Assign Inspector</label>
+          <label className="block text-sm font-medium text-gray-600 mb-1.5">Assign Inspector</label>
           <select name="inspector_id" className="glass-input">
             <option value="">Select inspector (optional)...</option>
             {inspectors.map(i => (
@@ -68,18 +68,18 @@ export function CreateAppointmentForm({ vehicles, inspectors }: Props) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-white/70 mb-1.5">Scheduled Date &amp; Time</label>
+          <label className="block text-sm font-medium text-gray-600 mb-1.5">Scheduled Date &amp; Time</label>
           <input type="datetime-local" name="scheduled_date" required className="glass-input" />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-white/70 mb-1.5">Notes (optional)</label>
+          <label className="block text-sm font-medium text-gray-600 mb-1.5">Notes (optional)</label>
           <textarea name="notes" rows={3} className="glass-input" placeholder="Additional notes..." />
         </div>
 
         {error && (
-          <div className="p-3 glass-card border-red-400/25">
-            <p className="text-sm text-red-300">{error}</p>
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-sm text-red-600">{error}</p>
           </div>
         )}
 

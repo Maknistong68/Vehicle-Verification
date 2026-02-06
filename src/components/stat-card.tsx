@@ -25,15 +25,6 @@ const iconColorMap = {
   cyan: 'text-cyan-500',
 }
 
-const topBarColors = {
-  blue: 'bg-blue-500',
-  green: 'bg-green-500',
-  red: 'bg-red-500',
-  yellow: 'bg-yellow-500',
-  purple: 'bg-purple-500',
-  cyan: 'bg-cyan-500',
-}
-
 function formatValue(value: string | number): string {
   if (typeof value === 'number') {
     return value.toLocaleString()
@@ -50,9 +41,6 @@ export function StatCard({ label, value, icon, color, subtitle, emptyMessage }: 
 
   return (
     <div className="glass-card overflow-hidden transition-shadow duration-200 hover:shadow-md">
-      {/* Top color bar */}
-      <div className={`h-0.5 ${topBarColors[color]}`} />
-
       <div className="p-3.5 md:p-4">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs text-gray-500 font-medium">{label}</span>

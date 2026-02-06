@@ -50,12 +50,12 @@ export function CreateUserForm({ currentUserRole }: { currentUserRole: string })
   if (success) {
     return (
       <div className="max-w-2xl">
-        <div className="glass-card border-emerald-400/25 p-6 text-center">
+        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-6 text-center">
           <svg className="w-12 h-12 text-green-400 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <p className="text-emerald-300 font-medium">User created successfully!</p>
-          <p className="text-sm text-white/40 mt-1">Redirecting...</p>
+          <p className="text-emerald-700 font-medium">User created successfully!</p>
+          <p className="text-sm text-gray-400 mt-1">Redirecting...</p>
         </div>
       </div>
     )
@@ -66,28 +66,28 @@ export function CreateUserForm({ currentUserRole }: { currentUserRole: string })
       <form onSubmit={handleSubmit} className="glass-card p-5 md:p-6 space-y-5">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-white/70 mb-1.5">Full Name *</label>
+            <label className="block text-sm font-medium text-gray-600 mb-1.5">Full Name *</label>
             <input name="full_name" required className="glass-input" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-white/70 mb-1.5">Email *</label>
+            <label className="block text-sm font-medium text-gray-600 mb-1.5">Email *</label>
             <input name="email" type="email" required className="glass-input" />
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-white/70 mb-1.5">Password *</label>
+            <label className="block text-sm font-medium text-gray-600 mb-1.5">Password *</label>
             <input name="password" type="password" required minLength={8} className="glass-input" placeholder="Min 8 characters" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-white/70 mb-1.5">Phone</label>
+            <label className="block text-sm font-medium text-gray-600 mb-1.5">Phone</label>
             <input name="phone" type="tel" className="glass-input" />
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-white/70 mb-1.5">Role *</label>
+          <label className="block text-sm font-medium text-gray-600 mb-1.5">Role *</label>
           <select name="role" required className="glass-input">
             <option value="">Select role...</option>
             {availableRoles.map(r => (
@@ -97,8 +97,8 @@ export function CreateUserForm({ currentUserRole }: { currentUserRole: string })
         </div>
 
         {error && (
-          <div className="p-3 glass-card border-red-400/25">
-            <p className="text-sm text-red-300">{error}</p>
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-sm text-red-600">{error}</p>
           </div>
         )}
 

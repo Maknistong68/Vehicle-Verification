@@ -54,28 +54,28 @@ export function AddVehicleForm({ companies, equipmentTypes }: Props) {
       <form onSubmit={handleSubmit} className="glass-card p-5 md:p-6 space-y-5">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-white/70 mb-1.5">Plate Number *</label>
+            <label className="block text-sm font-medium text-gray-600 mb-1.5">Plate Number *</label>
             <input name="plate_number" required className="glass-input" placeholder="e.g. ABC1234" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-white/70 mb-1.5">Driver Name</label>
+            <label className="block text-sm font-medium text-gray-600 mb-1.5">Driver Name</label>
             <input name="driver_name" className="glass-input" />
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-white/70 mb-1.5">National ID</label>
+            <label className="block text-sm font-medium text-gray-600 mb-1.5">National ID</label>
             <input name="national_id" className="glass-input" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-white/70 mb-1.5">Year of Manufacture</label>
+            <label className="block text-sm font-medium text-gray-600 mb-1.5">Year of Manufacture</label>
             <input name="year_of_manufacture" type="number" min="1990" max="2030" className="glass-input" />
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-white/70 mb-1.5">Company</label>
+          <label className="block text-sm font-medium text-gray-600 mb-1.5">Company</label>
           <select name="company_id" className="glass-input">
             <option value="">Select company...</option>
             {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -83,7 +83,7 @@ export function AddVehicleForm({ companies, equipmentTypes }: Props) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-white/70 mb-1.5">Equipment Type</label>
+          <label className="block text-sm font-medium text-gray-600 mb-1.5">Equipment Type</label>
           <select name="equipment_type_id" className="glass-input">
             <option value="">Select type...</option>
             {equipmentTypes.map(e => <option key={e.id} value={e.id}>{e.name} ({e.category})</option>)}
@@ -92,23 +92,23 @@ export function AddVehicleForm({ companies, equipmentTypes }: Props) {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-white/70 mb-1.5">Project</label>
+            <label className="block text-sm font-medium text-gray-600 mb-1.5">Project</label>
             <input name="project" className="glass-input" placeholder="e.g. OXAGON" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-white/70 mb-1.5">Gate</label>
+            <label className="block text-sm font-medium text-gray-600 mb-1.5">Gate</label>
             <input name="gate" className="glass-input" placeholder="e.g. oxagon gate" />
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-white/70 mb-1.5">Next Inspection Date</label>
+          <label className="block text-sm font-medium text-gray-600 mb-1.5">Next Inspection Date</label>
           <input name="next_inspection_date" type="date" className="glass-input" />
         </div>
 
         {error && (
-          <div className="p-3 glass-card border-red-400/25">
-            <p className="text-sm text-red-300">{error}</p>
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-sm text-red-600">{error}</p>
           </div>
         )}
 
