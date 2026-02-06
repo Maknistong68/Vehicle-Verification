@@ -8,16 +8,24 @@ export default async function NewInspectionPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase.from('user_profiles').select('role').eq('id', user.id).single()
-  if (!profile || !['owner', 'admin'].includes(profile.role)) redirect('/dashboard')
+  const { data: profile } = await supabase.from('user_profiles').select('role, full_name').eq('id', user.id).single()
+  if (!profile || !['owner', 'admin', 'inspector'].includes(profile.role)) redirect('/dashboard')
 
   const { data: vehicles } = await supabase.from('vehicles_equipment').select('id, plate_number, driver_name').order('plate_number')
   const { data: inspectors } = await supabase.from('user_profiles').select('id, full_name').eq('role', 'inspector').eq('is_active', true).order('full_name')
+  const { data: equipmentTypes } = await supabase.from('equipment_types').select('id, name, category').eq('is_active', true).order('name')
 
   return (
     <>
       <PageHeader title="Create Inspection" description="Schedule a new vehicle or equipment inspection." />
-      <CreateInspectionForm vehicles={vehicles || []} inspectors={inspectors || []} />
+      <CreateInspectionForm
+        vehicles={vehicles || []}
+        inspectors={inspectors || []}
+        equipmentTypes={equipmentTypes || []}
+        currentUserId={user.id}
+        currentUserRole={profile.role}
+        currentUserName={profile.full_name}
+      />
     </>
   )
 }

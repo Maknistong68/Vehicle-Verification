@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { UserRole } from '@/lib/types'
 import { useState } from 'react'
+import { useRole } from '@/lib/role-context'
 
 interface SidebarProps {
   userRole: UserRole
@@ -71,11 +72,14 @@ const roleBadgeColors: Record<UserRole, string> = {
   verifier: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
 }
 
+const ALL_ROLES: UserRole[] = ['owner', 'admin', 'inspector', 'contractor', 'verifier']
+
 export function Sidebar({ userRole, userName, userEmail }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
   const [moreOpen, setMoreOpen] = useState(false)
+  const { actualRole, effectiveRole, viewAsRole, setViewAsRole } = useRole()
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
@@ -83,12 +87,14 @@ export function Sidebar({ userRole, userName, userEmail }: SidebarProps) {
     router.refresh()
   }
 
-  const filteredItems = navItems.filter(item => item.roles.includes(userRole))
+  const filteredItems = navItems.filter(item => item.roles.includes(effectiveRole))
 
   // Mobile: first 4 items in bottom tab bar, rest in "More" sheet
   const mobileTabItems = filteredItems.slice(0, 4)
   const moreItems = filteredItems.slice(4)
   const hasMore = moreItems.length > 0
+
+  const displayRole = effectiveRole
 
   return (
     <>
@@ -140,17 +146,40 @@ export function Sidebar({ userRole, userName, userEmail }: SidebarProps) {
               <p className="text-xs text-white/40 truncate">{userEmail}</p>
             </div>
           </div>
-          <div className="flex items-center justify-between">
-            <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full border ${roleBadgeColors[userRole]}`}>
-              {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
+          <div>
+            <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full border ${roleBadgeColors[displayRole]}`}>
+              {displayRole.charAt(0).toUpperCase() + displayRole.slice(1)}
             </span>
-            <button
-              onClick={handleSignOut}
-              className="text-xs text-white/40 hover:text-red-400 transition-colors"
-            >
-              Sign Out
-            </button>
           </div>
+
+          {/* POV Switcher - Owner only */}
+          {actualRole === 'owner' && (
+            <div className="mt-3">
+              <label className="block text-[10px] uppercase tracking-wider text-white/30 mb-1">View as role</label>
+              <select
+                value={viewAsRole || 'owner'}
+                onChange={(e) => {
+                  const val = e.target.value as UserRole
+                  setViewAsRole(val === 'owner' ? null : val)
+                }}
+                className="w-full glass-input text-xs !py-1.5"
+              >
+                {ALL_ROLES.map(r => (
+                  <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}{r === 'owner' ? ' (Default)' : ''}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <button
+            onClick={handleSignOut}
+            className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-white/40 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            Sign Out
+          </button>
         </div>
       </aside>
 
@@ -245,10 +274,30 @@ export function Sidebar({ userRole, userName, userEmail }: SidebarProps) {
                   <p className="text-sm font-medium text-white truncate">{userName}</p>
                   <p className="text-xs text-white/40 truncate">{userEmail}</p>
                 </div>
-                <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full border ${roleBadgeColors[userRole]}`}>
-                  {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
+                <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full border ${roleBadgeColors[displayRole]}`}>
+                  {displayRole.charAt(0).toUpperCase() + displayRole.slice(1)}
                 </span>
               </div>
+
+              {/* POV Switcher in mobile - Owner only */}
+              {actualRole === 'owner' && (
+                <div className="mb-3">
+                  <label className="block text-[10px] uppercase tracking-wider text-white/30 mb-1">View as role</label>
+                  <select
+                    value={viewAsRole || 'owner'}
+                    onChange={(e) => {
+                      const val = e.target.value as UserRole
+                      setViewAsRole(val === 'owner' ? null : val)
+                    }}
+                    className="w-full glass-input text-sm !py-2"
+                  >
+                    {ALL_ROLES.map(r => (
+                      <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}{r === 'owner' ? ' (Default)' : ''}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <button
                 onClick={() => { setMoreOpen(false); handleSignOut() }}
                 className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium text-red-400 hover:bg-red-500/10 transition-colors min-h-[44px]"

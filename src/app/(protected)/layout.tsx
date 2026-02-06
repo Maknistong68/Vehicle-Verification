@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Sidebar } from '@/components/sidebar'
 import { UserRole } from '@/lib/types'
+import { RoleProvider } from '@/lib/role-context'
+import { POVBanner } from '@/components/pov-banner'
 
 export const dynamic = 'force-dynamic'
 
@@ -42,17 +44,20 @@ export default async function ProtectedLayout({
   }
 
   return (
-    <div className="min-h-screen md:flex">
-      <Sidebar
-        userRole={profile.role as UserRole}
-        userName={profile.full_name}
-        userEmail={profile.email}
-      />
-      <main className="flex-1 overflow-auto pb-20 md:pb-0">
-        <div className="p-4 md:p-6 lg:p-8">
-          {children}
-        </div>
-      </main>
-    </div>
+    <RoleProvider actualRole={profile.role as UserRole}>
+      <div className="min-h-screen md:flex">
+        <Sidebar
+          userRole={profile.role as UserRole}
+          userName={profile.full_name}
+          userEmail={profile.email}
+        />
+        <main className="flex-1 overflow-auto pb-20 md:pb-0">
+          <POVBanner />
+          <div className="p-4 md:p-6 lg:p-8">
+            {children}
+          </div>
+        </main>
+      </div>
+    </RoleProvider>
   )
 }
