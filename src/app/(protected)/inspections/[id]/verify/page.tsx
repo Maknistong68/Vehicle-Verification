@@ -13,11 +13,11 @@ export default async function VerifyInspectionPage({ params }: { params: Promise
   const { data: profile } = await supabase.from('user_profiles').select('role').eq('id', user.id).single()
   if (!profile || profile.role !== 'verifier') redirect('/dashboard')
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: inspection } = await supabase
+  const { data: inspectionRaw } = await supabase
     .from('inspections')
     .select(`id, result, status, completed_at, notes, failure_reason, verified_at, vehicle_equipment:vehicles_equipment(plate_number)`)
-    .eq('id', id).single() as { data: any }
+    .eq('id', id).single()
+  const inspection = inspectionRaw as unknown as { id: string; result: string; status: string; completed_at: string | null; notes: string | null; failure_reason: string | null; verified_at: string | null; vehicle_equipment: { plate_number: string } | null } | null
 
   if (!inspection || inspection.status !== 'completed' || inspection.verified_at) redirect('/inspections')
 

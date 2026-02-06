@@ -34,8 +34,17 @@ export default async function InspectionsPage() {
     query = query.eq('assigned_inspector_id', user.id)
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: inspections } = await query as { data: any[] | null }
+  const { data: inspectionsRaw } = await query
+
+  interface InspectionRow {
+    id: string; inspection_type: string; result: string; status: string
+    scheduled_date: string; completed_at: string | null; notes: string | null
+    failure_reason: string | null; verified_at: string | null
+    vehicle_equipment: { id: string; plate_number: string; driver_name: string | null } | null
+    inspector: { full_name: string } | null
+    verifier: { full_name: string } | null
+  }
+  const inspections = inspectionsRaw as unknown as InspectionRow[] | null
 
   const canCreate = role === 'owner' || role === 'admin'
 

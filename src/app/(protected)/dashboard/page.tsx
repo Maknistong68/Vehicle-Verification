@@ -7,6 +7,16 @@ import { maskName, maskPlateNumber } from '@/lib/masking'
 import { UserRole } from '@/lib/types'
 import Link from 'next/link'
 
+interface RecentInspection {
+  id: string
+  result: string
+  status: string
+  scheduled_date: string
+  completed_at: string | null
+  vehicle_equipment: { plate_number: string; driver_name: string | null } | null
+  inspector: { full_name: string } | null
+}
+
 export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -21,15 +31,7 @@ export default async function DashboardPage() {
   if (!profile) redirect('/login')
   const role = profile.role as UserRole
 
-  const [
-    { count: totalInspections },
-    { count: passCount },
-    { count: failCount },
-    { count: pendingCount },
-    { count: scheduledCount },
-    { count: completedCount },
-    { count: totalVehicles },
-  ] = await Promise.all([
+  const results = await Promise.all([
     supabase.from('inspections').select('*', { count: 'exact', head: true }),
     supabase.from('inspections').select('*', { count: 'exact', head: true }).eq('result', 'pass'),
     supabase.from('inspections').select('*', { count: 'exact', head: true }).eq('result', 'fail'),
@@ -39,8 +41,15 @@ export default async function DashboardPage() {
     supabase.from('vehicles_equipment').select('*', { count: 'exact', head: true }),
   ])
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: recentInspections } = await supabase
+  const totalInspections = results[0].count ?? 0
+  const passCount = results[1].count ?? 0
+  const failCount = results[2].count ?? 0
+  const pendingCount = results[3].count ?? 0
+  const scheduledCount = results[4].count ?? 0
+  const completedCount = results[5].count ?? 0
+  const totalVehicles = results[6].count ?? 0
+
+  const { data: recentInspectionsRaw } = await supabase
     .from('inspections')
     .select(`
       id, result, status, scheduled_date, completed_at,
@@ -49,25 +58,32 @@ export default async function DashboardPage() {
     `)
     .order('created_at', { ascending: false })
     .limit(10)
+  const recentInspections = recentInspectionsRaw as unknown as RecentInspection[] | null
 
   let inspectorWorkload: { full_name: string; count: number }[] = []
   if (role === 'owner' || role === 'admin') {
-    const { data: inspectors } = await supabase
-      .from('user_profiles')
-      .select('id, full_name')
-      .eq('role', 'inspector')
-      .eq('is_active', true)
+    // Single query: fetch active inspections with inspector names (avoids N+1)
+    const { data: activeInspections } = await supabase
+      .from('inspections')
+      .select('assigned_inspector_id, inspector:user_profiles!inspections_assigned_inspector_id_fkey(full_name)')
+      .in('status', ['scheduled', 'in_progress'])
 
-    if (inspectors) {
-      const workloadPromises = inspectors.map(async (ins) => {
-        const { count } = await supabase
-          .from('inspections')
-          .select('*', { count: 'exact', head: true })
-          .eq('assigned_inspector_id', ins.id)
-          .in('status', ['scheduled', 'in_progress'])
-        return { full_name: ins.full_name, count: count || 0 }
-      })
-      inspectorWorkload = await Promise.all(workloadPromises)
+    if (activeInspections) {
+      const workloadMap = new Map<string, { full_name: string; count: number }>()
+      for (const insp of activeInspections) {
+        const id = insp.assigned_inspector_id
+        if (!id) continue
+        const inspectorRaw = insp.inspector as unknown
+        const inspectorData = (Array.isArray(inspectorRaw) ? inspectorRaw[0] : inspectorRaw) as { full_name: string } | null
+        const name = inspectorData?.full_name ?? 'Unknown'
+        const existing = workloadMap.get(id)
+        if (existing) {
+          existing.count++
+        } else {
+          workloadMap.set(id, { full_name: name, count: 1 })
+        }
+      }
+      inspectorWorkload = Array.from(workloadMap.values()).sort((a, b) => b.count - a.count)
     }
   }
 
@@ -79,16 +95,16 @@ export default async function DashboardPage() {
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard label="Total Inspections" value={totalInspections ?? 0} icon="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" color="blue" />
-        <StatCard label="Passed" value={passCount ?? 0} icon="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" color="green" subtitle={totalInspections ? `${Math.round(((passCount ?? 0) / totalInspections) * 100)}% pass rate` : undefined} />
-        <StatCard label="Failed" value={failCount ?? 0} icon="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" color="red" />
-        <StatCard label="Pending / Scheduled" value={(pendingCount ?? 0) + (scheduledCount ?? 0)} icon="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" color="yellow" />
+        <StatCard label="Total Inspections" value={totalInspections} icon="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" color="blue" />
+        <StatCard label="Passed" value={passCount} icon="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" color="green" subtitle={totalInspections ? `${Math.round((passCount / totalInspections) * 100)}% pass rate` : undefined} />
+        <StatCard label="Failed" value={failCount} icon="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" color="red" />
+        <StatCard label="Pending / Scheduled" value={pendingCount + scheduledCount} icon="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" color="yellow" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
-        <StatCard label="Completed" value={completedCount ?? 0} icon="M5 13l4 4L19 7" color="purple" />
-        <StatCard label="Total Vehicles/Equipment" value={totalVehicles ?? 0} icon="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" color="cyan" />
-        <StatCard label="Scheduled" value={scheduledCount ?? 0} icon="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" color="blue" />
+        <StatCard label="Completed" value={completedCount} icon="M5 13l4 4L19 7" color="purple" />
+        <StatCard label="Total Vehicles/Equipment" value={totalVehicles} icon="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" color="cyan" />
+        <StatCard label="Scheduled" value={scheduledCount} icon="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" color="blue" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -111,8 +127,7 @@ export default async function DashboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                {recentInspections?.map((insp: any) => (
+                {recentInspections?.map((insp) => (
                   <tr key={insp.id} className="hover:bg-white/[0.03]">
                     <td className="p-4">
                       <p className="text-sm text-white">{maskPlateNumber(insp.vehicle_equipment?.plate_number, role)}</p>

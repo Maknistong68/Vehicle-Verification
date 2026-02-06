@@ -34,7 +34,7 @@ export default async function AppointmentsPage() {
     query = query.eq('inspector_id', user.id)
   }
 
-  const { data: appointments } = await query
+  const { data: appointments, error: appointmentsError } = await query
 
   const canCreate = role === 'owner' || role === 'admin'
 
@@ -77,17 +77,17 @@ export default async function AppointmentsPage() {
                 <tr key={apt.id} className="hover:bg-white/[0.03]">
                   <td className="p-4">
                     <p className="text-sm text-white font-medium">
-                      {maskPlateNumber((apt.vehicle_equipment as any)?.plate_number, role)}
+                      {maskPlateNumber((apt.vehicle_equipment as { plate_number?: string; driver_name?: string } | null)?.plate_number, role)}
                     </p>
                     <p className="text-xs text-white/40">
-                      {maskName((apt.vehicle_equipment as any)?.driver_name, role)}
+                      {maskName((apt.vehicle_equipment as { plate_number?: string; driver_name?: string } | null)?.driver_name, role)}
                     </p>
                   </td>
                   <td className="p-4 text-sm text-white/70">
-                    {maskName((apt.inspector as any)?.full_name, role)}
+                    {maskName((apt.inspector as { full_name?: string } | null)?.full_name, role)}
                   </td>
                   <td className="p-4 text-sm text-white/50">
-                    {maskName((apt.scheduler as any)?.full_name, role)}
+                    {maskName((apt.scheduler as { full_name?: string } | null)?.full_name, role)}
                   </td>
                   <td className="p-4 text-sm text-white">
                     {new Date(apt.scheduled_date).toLocaleString()}
@@ -117,10 +117,10 @@ export default async function AppointmentsPage() {
             <div className="flex items-start justify-between mb-2">
               <div>
                 <p className="text-sm font-medium text-white">
-                  {maskPlateNumber((apt.vehicle_equipment as any)?.plate_number, role)}
+                  {maskPlateNumber((apt.vehicle_equipment as { plate_number?: string; driver_name?: string } | null)?.plate_number, role)}
                 </p>
                 <p className="text-xs text-white/50">
-                  {maskName((apt.inspector as any)?.full_name, role)}
+                  {maskName((apt.inspector as { full_name?: string } | null)?.full_name, role)}
                 </p>
               </div>
               <StatusBadge label={apt.status} variant={getAppointmentStatusVariant(apt.status)} />

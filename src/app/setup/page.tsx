@@ -19,39 +19,67 @@ export default function SetupPage() {
 
     const supabase = createClient()
 
-    const { data, error: signUpError } = await supabase.auth.signUp({
+    // Step 1: Try to sign up
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
     })
 
-    if (signUpError) {
+    if (signUpError && !signUpError.message.includes('already registered')) {
       setError(signUpError.message)
       setLoading(false)
       return
     }
 
-    if (!data.user) {
-      setError('Failed to create user')
+    // Step 2: Sign in to establish a session (needed for RLS)
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+
+    if (signInError) {
+      setError('Sign-in failed: ' + signInError.message + '. If email confirmation is required, check your Supabase Auth settings and disable "Confirm email".')
       setLoading(false)
       return
     }
 
+    const userId = signInData.user?.id || signUpData?.user?.id
+    if (!userId) {
+      setError('Failed to get user ID')
+      setLoading(false)
+      return
+    }
+
+    // Step 3: Check if profile already exists
+    const { data: existingProfile } = await supabase
+      .from('user_profiles')
+      .select('id')
+      .eq('id', userId)
+      .single()
+
+    if (existingProfile) {
+      setMessage('Owner account already exists! You can sign in now.')
+      setLoading(false)
+      return
+    }
+
+    // Step 4: Insert profile (now authenticated, RLS will allow id = auth.uid())
     const { error: profileError } = await supabase
       .from('user_profiles')
       .insert({
-        id: data.user.id,
+        id: userId,
         email,
         full_name: fullName,
         role: 'owner',
       })
 
     if (profileError) {
-      setError('Auth user created but profile failed: ' + profileError.message)
+      setError('Profile creation failed: ' + profileError.message)
       setLoading(false)
       return
     }
 
-    setMessage('Owner account created! You can now go to /login and sign in.')
+    setMessage('Owner account created! You can now sign in.')
     setLoading(false)
   }
 

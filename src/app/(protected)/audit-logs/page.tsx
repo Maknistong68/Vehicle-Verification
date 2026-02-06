@@ -2,6 +2,19 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { PageHeader } from '@/components/page-header'
 
+const SENSITIVE_FIELDS = ['national_id', 'password', 'api_key', 'secret']
+
+function sanitizeAuditData(data: Record<string, unknown> | null): Record<string, unknown> | null {
+  if (!data) return null
+  const sanitized = { ...data }
+  for (const field of SENSITIVE_FIELDS) {
+    if (field in sanitized) {
+      sanitized[field] = '[REDACTED]'
+    }
+  }
+  return sanitized
+}
+
 export default async function AuditLogsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -15,7 +28,7 @@ export default async function AuditLogsPage() {
 
   if (!profile || profile.role !== 'owner') redirect('/dashboard')
 
-  const { data: logs } = await supabase
+  const { data: logs, error: logsError } = await supabase
     .from('audit_logs')
     .select('*')
     .order('created_at', { ascending: false })
@@ -85,13 +98,13 @@ export default async function AuditLogsPage() {
                           {log.old_values && (
                             <div>
                               <span className="text-red-300 font-medium">Old:</span>
-                              <pre className="text-white/40 mt-1 overflow-auto max-h-24 text-[10px]">{JSON.stringify(log.old_values, null, 2)}</pre>
+                              <pre className="text-white/40 mt-1 overflow-auto max-h-24 text-[10px]">{JSON.stringify(sanitizeAuditData(log.old_values as Record<string, unknown> | null), null, 2)}</pre>
                             </div>
                           )}
                           {log.new_values && (
                             <div>
                               <span className="text-green-300 font-medium">New:</span>
-                              <pre className="text-white/40 mt-1 overflow-auto max-h-24 text-[10px]">{JSON.stringify(log.new_values, null, 2)}</pre>
+                              <pre className="text-white/40 mt-1 overflow-auto max-h-24 text-[10px]">{JSON.stringify(sanitizeAuditData(log.new_values as Record<string, unknown> | null), null, 2)}</pre>
                             </div>
                           )}
                         </div>
@@ -140,13 +153,13 @@ export default async function AuditLogsPage() {
                   {log.old_values && (
                     <div>
                       <span className="text-red-300 font-medium">Old:</span>
-                      <pre className="text-white/40 mt-1 overflow-auto max-h-24 text-[10px]">{JSON.stringify(log.old_values, null, 2)}</pre>
+                      <pre className="text-white/40 mt-1 overflow-auto max-h-24 text-[10px]">{JSON.stringify(sanitizeAuditData(log.old_values as Record<string, unknown> | null), null, 2)}</pre>
                     </div>
                   )}
                   {log.new_values && (
                     <div>
                       <span className="text-green-300 font-medium">New:</span>
-                      <pre className="text-white/40 mt-1 overflow-auto max-h-24 text-[10px]">{JSON.stringify(log.new_values, null, 2)}</pre>
+                      <pre className="text-white/40 mt-1 overflow-auto max-h-24 text-[10px]">{JSON.stringify(sanitizeAuditData(log.new_values as Record<string, unknown> | null), null, 2)}</pre>
                     </div>
                   )}
                 </div>

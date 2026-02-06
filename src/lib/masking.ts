@@ -7,7 +7,7 @@ export function shouldMaskData(role: UserRole): boolean {
   return !UNMASKED_ROLES.includes(role)
 }
 
-export function maskName(name: string | null, role: UserRole): string {
+export function maskName(name: string | null | undefined, role: UserRole): string {
   if (!name) return '—'
   if (!shouldMaskData(role)) return name
   const parts = name.trim().split(' ')
@@ -20,21 +20,21 @@ export function maskName(name: string | null, role: UserRole): string {
   return `${first} ${last}`
 }
 
-export function maskId(id: string | null, role: UserRole): string {
+export function maskId(id: string | null | undefined, role: UserRole): string {
   if (!id) return '—'
   if (!shouldMaskData(role)) return id
   if (id.length <= 4) return '****'
   return '****-' + id.slice(-4)
 }
 
-export function maskPlateNumber(plate: string | null, role: UserRole): string {
+export function maskPlateNumber(plate: string | null | undefined, role: UserRole): string {
   if (!plate) return '—'
   if (!shouldMaskData(role)) return plate
   if (plate.length <= 4) return '****'
   return '***' + plate.slice(-4)
 }
 
-export function maskNationalId(nid: string | null, role: UserRole): string {
+export function maskNationalId(nid: string | null | undefined, role: UserRole): string {
   if (!nid) return '—'
   if (!shouldMaskData(role)) return nid
   if (nid.length <= 4) return '****'

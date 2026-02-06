@@ -28,7 +28,7 @@ export default async function UsersPage() {
   if (!profile || !['owner', 'admin'].includes(profile.role)) redirect('/dashboard')
   const role = profile.role as UserRole
 
-  const { data: users } = await supabase
+  const { data: users, error: usersError } = await supabase
     .from('user_profiles')
     .select('*')
     .order('created_at', { ascending: false })

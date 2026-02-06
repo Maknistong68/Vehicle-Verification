@@ -21,7 +21,7 @@ export default async function VehiclesPage() {
   const role = profile.role as UserRole
   const minimal = isMinimalDataRole(role)
 
-  const { data: vehicles } = await supabase
+  const { data: vehicles, error: vehiclesError } = await supabase
     .from('vehicles_equipment')
     .select(`
       id, plate_number, driver_name, national_id, year_of_manufacture, project, gate, status, next_inspection_date, blacklisted,
@@ -82,10 +82,10 @@ export default async function VehiclesPage() {
                     <td className="p-4 text-sm text-white/70">{maskName(v.driver_name, role)}</td>
                   )}
                   <td className="p-4">
-                    <p className="text-sm text-white/70">{(v.equipment_type as any)?.name || '—'}</p>
-                    <p className="text-xs text-white/40">{(v.equipment_type as any)?.category === 'heavy_equipment' ? 'Heavy Equipment' : 'Vehicle'}</p>
+                    <p className="text-sm text-white/70">{(v.equipment_type as { name?: string; category?: string; classification?: string } | null)?.name || '—'}</p>
+                    <p className="text-xs text-white/40">{(v.equipment_type as { name?: string; category?: string; classification?: string } | null)?.category === 'heavy_equipment' ? 'Heavy Equipment' : 'Vehicle'}</p>
                   </td>
-                  <td className="p-4 text-sm text-white/70">{(v.company as any)?.name || '—'}</td>
+                  <td className="p-4 text-sm text-white/70">{(v.company as { name?: string } | null)?.name || '—'}</td>
                   <td className="p-4 text-sm text-white/50">{v.project || '—'}</td>
                   <td className="p-4 text-sm text-white/50">{v.year_of_manufacture || '—'}</td>
                   <td className="p-4">
@@ -116,7 +116,7 @@ export default async function VehiclesPage() {
             <div className="flex items-start justify-between mb-2">
               <div>
                 <p className="text-sm font-medium text-white">{maskPlateNumber(v.plate_number, role)}</p>
-                <p className="text-xs text-white/50">{(v.equipment_type as any)?.name || '—'}</p>
+                <p className="text-xs text-white/50">{(v.equipment_type as { name?: string; category?: string; classification?: string } | null)?.name || '—'}</p>
               </div>
               <StatusBadge
                 label={v.status.replace(/_/g, ' ')}
@@ -124,7 +124,7 @@ export default async function VehiclesPage() {
               />
             </div>
             <div className="flex items-center justify-between text-xs text-white/40 mt-2">
-              <span>{(v.company as any)?.name || '—'}</span>
+              <span>{(v.company as { name?: string } | null)?.name || '—'}</span>
               <span>{v.next_inspection_date ? `Next: ${new Date(v.next_inspection_date).toLocaleDateString()}` : 'No inspection date'}</span>
             </div>
           </div>

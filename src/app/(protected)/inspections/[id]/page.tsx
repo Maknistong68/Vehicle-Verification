@@ -16,12 +16,27 @@ export default async function InspectionDetailPage({ params }: { params: Promise
   if (!profile) redirect('/login')
   const role = profile.role as UserRole
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: inspection } = await supabase
+  const { data: inspectionRaw } = await supabase
     .from('inspections')
     .select(`*, vehicle_equipment:vehicles_equipment(*, equipment_type:equipment_types(*), company:companies(*)), inspector:user_profiles!inspections_assigned_inspector_id_fkey(full_name, email), verifier:user_profiles!inspections_verified_by_fkey(full_name, email)`)
     .eq('id', id)
-    .single() as { data: any }
+    .single()
+
+  // Cast FK joins from arrays to single objects (Supabase .single() guarantees this)
+  interface InspectionDetail {
+    id: string; inspection_type: string; result: string; status: string
+    scheduled_date: string; completed_at: string | null; failure_reason: string | null; notes: string | null
+    verified_at: string | null
+    vehicle_equipment: {
+      plate_number: string; driver_name: string | null; national_id: string | null
+      year_of_manufacture: number | null; project: string | null
+      equipment_type: { name: string; category: string } | null
+      company: { name: string } | null
+    } | null
+    inspector: { full_name: string; email: string } | null
+    verifier: { full_name: string; email: string } | null
+  }
+  const inspection = inspectionRaw as unknown as InspectionDetail | null
 
   if (!inspection) redirect('/inspections')
   const ve = inspection.vehicle_equipment
