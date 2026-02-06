@@ -1,0 +1,220 @@
+@import "tailwindcss";
+
+/* ── Design Tokens ────────────────────────────────────── */
+:root {
+  --background: #030712;
+  --foreground: #f9fafb;
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-bg-strong: rgba(255, 255, 255, 0.08);
+  --glass-border: rgba(255, 255, 255, 0.10);
+  --glass-border-strong: rgba(255, 255, 255, 0.12);
+  --input-bg: rgba(255, 255, 255, 0.05);
+  --input-border: rgba(255, 255, 255, 0.12);
+}
+
+body {
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+/* ── Gradient Mesh Background ─────────────────────────── */
+.gradient-mesh-bg {
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 80%, rgba(49, 46, 129, 0.4) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 20%, rgba(88, 28, 135, 0.35) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 60% at 60% 60%, rgba(12, 74, 110, 0.3) 0%, transparent 55%),
+    #030712;
+  background-attachment: fixed;
+}
+
+/* ── Glass Card Variants ──────────────────────────────── */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: 0.75rem;
+}
+
+.glass-card-strong {
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--glass-border-strong);
+  border-radius: 0.75rem;
+}
+
+.glass-card-interactive {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: 0.75rem;
+  transition: background 0.15s, border-color 0.15s;
+}
+.glass-card-interactive:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* ── Glass Input ──────────────────────────────────────── */
+.glass-input {
+  width: 100%;
+  padding: 0.625rem 1rem;
+  background: var(--input-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--input-border);
+  border-radius: 0.5rem;
+  color: white;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  outline: none;
+}
+.glass-input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+.glass-input:focus {
+  border-color: rgba(99, 102, 241, 0.6);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25);
+}
+
+/* ── Button Variants ──────────────────────────────────── */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.5rem;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: white;
+  font-weight: 500;
+  font-size: 0.875rem;
+  border-radius: 0.5rem;
+  border: none;
+  transition: opacity 0.15s, box-shadow 0.15s;
+  min-height: 44px;
+  cursor: pointer;
+}
+.btn-primary:hover {
+  opacity: 0.9;
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
+}
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.5rem;
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+  font-size: 0.875rem;
+  border-radius: 0.5rem;
+  transition: background 0.15s, color 0.15s;
+  min-height: 44px;
+  cursor: pointer;
+}
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+}
+
+/* ── Gradient Utilities ───────────────────────────────── */
+.gradient-blue-purple {
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+}
+.gradient-cyan-blue {
+  background: linear-gradient(135deg, #06b6d4, #3b82f6);
+}
+.gradient-green-cyan {
+  background: linear-gradient(135deg, #10b981, #06b6d4);
+}
+.gradient-pink-orange {
+  background: linear-gradient(135deg, #ec4899, #f97316);
+}
+.gradient-purple-pink {
+  background: linear-gradient(135deg, #8b5cf6, #ec4899);
+}
+.gradient-red-orange {
+  background: linear-gradient(135deg, #ef4444, #f97316);
+}
+.gradient-yellow-orange {
+  background: linear-gradient(135deg, #eab308, #f97316);
+}
+
+/* ── iOS Safe Area ────────────────────────────────────── */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ── Mobile Sheet Animation ───────────────────────────── */
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
+}
+
+/* ── Custom Scrollbar ─────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ── Form Element Overrides ───────────────────────────── */
+select option {
+  background: #1e1b4b;
+  color: #f9fafb;
+}
+
+input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
+input[type="radio"] {
+  accent-color: currentColor;
+}
+
+input[type="checkbox"] {
+  accent-color: #6366f1;
+}

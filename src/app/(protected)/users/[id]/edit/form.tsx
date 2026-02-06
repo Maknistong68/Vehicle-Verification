@@ -1,0 +1,83 @@
+'use client'
+
+import { useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation'
+
+interface Props {
+  userId: string
+  currentRole: string
+  userName: string
+  isActive: boolean
+}
+
+export function EditRoleForm({ userId, currentRole, userName, isActive }: Props) {
+  const [role, setRole] = useState(currentRole)
+  const [active, setActive] = useState(isActive)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const router = useRouter()
+  const supabase = createClient()
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
+
+    const { error: updateError } = await supabase
+      .from('user_profiles')
+      .update({ role, is_active: active })
+      .eq('id', userId)
+
+    if (updateError) {
+      setError(updateError.message)
+      setLoading(false)
+      return
+    }
+
+    router.push('/users')
+    router.refresh()
+  }
+
+  return (
+    <div className="max-w-md">
+      <form onSubmit={handleSubmit} className="glass-card p-5 md:p-6 space-y-5">
+        <div>
+          <p className="text-sm text-white/40">User</p>
+          <p className="text-white font-medium">{userName}</p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-white/70 mb-1.5">Role</label>
+          <select value={role} onChange={e => setRole(e.target.value)} className="glass-input">
+            <option value="owner">Owner</option>
+            <option value="admin">Admin</option>
+            <option value="inspector">Inspector</option>
+            <option value="contractor">Contractor</option>
+            <option value="verifier">Internal Verifier</option>
+          </select>
+        </div>
+
+        <div className="flex items-center gap-3 min-h-[44px]">
+          <input type="checkbox" id="active" checked={active} onChange={e => setActive(e.target.checked)} className="rounded" />
+          <label htmlFor="active" className="text-sm text-white/70">Active</label>
+        </div>
+
+        {error && (
+          <div className="p-3 glass-card border-red-400/25">
+            <p className="text-sm text-red-300">{error}</p>
+          </div>
+        )}
+
+        <div className="flex flex-col sm:flex-row gap-3">
+          <button type="submit" disabled={loading} className="btn-primary">
+            {loading ? 'Saving...' : 'Save Changes'}
+          </button>
+          <button type="button" onClick={() => router.back()} className="btn-secondary">
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  )
+}
