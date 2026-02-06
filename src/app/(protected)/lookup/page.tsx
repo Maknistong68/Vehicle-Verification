@@ -10,18 +10,25 @@ export default async function LookupPage() {
 
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('role, company_id')
+    .select('role')
     .eq('id', user.id)
     .single()
 
   if (!profile) redirect('/login')
   const role = profile.role as UserRole
 
-  // All roles can access lookup
+  // Check company_id separately (column may not exist yet if migration not run)
+  let companyId: string | null = null
+  if (role === 'contractor') {
+    const { data: companyData } = await supabase
+      .from('user_profiles')
+      .select('company_id')
+      .eq('id', user.id)
+      .single()
+    companyId = companyData?.company_id ?? null
+  }
 
-  // Fetch vehicles — RLS already handles scoping:
-  // - Verifier: sees ALL vehicles
-  // - Contractor: sees only their company's vehicles (via RLS)
+  // Fetch vehicles — RLS handles scoping per role
   const { data: vehicles } = await supabase
     .from('vehicles_equipment')
     .select(`
@@ -31,7 +38,7 @@ export default async function LookupPage() {
     `)
     .order('plate_number')
 
-  const hasNoCompany = role === 'contractor' && !profile.company_id
+  const hasNoCompany = role === 'contractor' && !companyId
 
   return (
     <LookupClient
