@@ -17,8 +17,7 @@ export default async function LookupPage() {
   if (!profile) redirect('/login')
   const role = profile.role as UserRole
 
-  // Only owner, contractor, and verifier can access this page
-  if (role !== 'owner' && role !== 'contractor' && role !== 'verifier') redirect('/dashboard')
+  // All roles can access lookup
 
   // Fetch vehicles — RLS already handles scoping:
   // - Verifier: sees ALL vehicles

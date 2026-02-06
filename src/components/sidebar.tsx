@@ -43,7 +43,7 @@ const navItems = [
     href: '/lookup',
     icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z',
     filledIcon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z',
-    roles: ['owner', 'contractor', 'verifier'] as UserRole[],
+    roles: ['owner', 'admin', 'inspector', 'contractor', 'verifier'] as UserRole[],
     mobileOrder: 4,
   },
   {
