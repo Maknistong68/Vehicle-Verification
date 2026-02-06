@@ -144,9 +144,9 @@ export function LookupClient({ vehicles, role, hasNoCompany }: Props) {
       <div className="text-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Vehicle Lookup</h1>
         <p className="text-sm text-gray-500 mt-1">
-          {role === 'verifier'
-            ? 'Search all vehicles across all companies'
-            : 'Search vehicles from your company'}
+          {role === 'contractor'
+            ? 'Search vehicles from your company'
+            : 'Search all vehicles across all companies'}
         </p>
       </div>
 
