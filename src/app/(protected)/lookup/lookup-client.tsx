@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { UserRole, VehicleStatus } from '@/lib/types'
+import { maskName, isMinimalDataRole } from '@/lib/masking'
 
 interface Vehicle {
   id: string
@@ -105,16 +106,18 @@ export function LookupClient({ vehicles, role, hasNoCompany }: Props) {
   const [query, setQuery] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
+  const minimal = isMinimalDataRole(role)
+
   const filtered = useMemo(() => {
     if (!query.trim()) return []
     const q = query.toLowerCase().trim()
     return vehicles.filter(v =>
       v.plate_number.toLowerCase().includes(q) ||
-      (v.driver_name && v.driver_name.toLowerCase().includes(q)) ||
+      (!minimal && maskName(v.driver_name, role).toLowerCase().includes(q)) ||
       (v.company?.name && v.company.name.toLowerCase().includes(q)) ||
       (v.equipment_type?.name && v.equipment_type.name.toLowerCase().includes(q))
     )
-  }, [query, vehicles])
+  }, [query, vehicles, role, minimal])
 
   const selectedVehicle = selectedId
     ? vehicles.find(v => v.id === selectedId) || null
@@ -208,7 +211,7 @@ export function LookupClient({ vehicles, role, hasNoCompany }: Props) {
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-gray-900">{v.plate_number}</p>
                     <p className="text-xs text-gray-400 truncate">
-                      {[v.company?.name, v.equipment_type?.name, v.driver_name].filter(Boolean).join(' · ')}
+                      {[v.company?.name, v.equipment_type?.name, !isMinimalDataRole(role) ? maskName(v.driver_name, role) : null].filter(Boolean).join(' · ')}
                     </p>
                   </div>
                   <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${sc.bg} ${sc.text} border ${sc.border}`}>
@@ -263,10 +266,12 @@ export function LookupClient({ vehicles, role, hasNoCompany }: Props) {
                 <p className="text-xs text-gray-400 uppercase tracking-wider">Equipment Type</p>
                 <p className="text-sm font-medium text-gray-900">{selectedVehicle.equipment_type?.name || '—'}</p>
               </div>
-              <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wider">Driver</p>
-                <p className="text-sm font-medium text-gray-900">{selectedVehicle.driver_name || '—'}</p>
-              </div>
+              {!isMinimalDataRole(role) && (
+                <div>
+                  <p className="text-xs text-gray-400 uppercase tracking-wider">Driver</p>
+                  <p className="text-sm font-medium text-gray-900">{maskName(selectedVehicle.driver_name, role)}</p>
+                </div>
+              )}
             </div>
 
             <button

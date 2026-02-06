@@ -110,7 +110,7 @@ export default async function DashboardPage() {
         <div className="lg:col-span-2 glass-card">
           <div className="flex items-center justify-between p-4 md:p-5 border-b border-gray-200">
             <h3 className="text-sm font-semibold text-gray-900">Recent Inspections</h3>
-            <Link href="/inspections" className="text-xs text-emerald-600 hover:text-emerald-500 font-medium">View all</Link>
+            <Link href="/fleet" className="text-xs text-emerald-600 hover:text-emerald-500 font-medium">View all</Link>
           </div>
 
           {/* Desktop table */}

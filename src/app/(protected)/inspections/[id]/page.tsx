@@ -39,7 +39,7 @@ export default async function InspectionDetailPage({ params }: { params: Promise
   }
   const inspection = inspectionRaw as unknown as InspectionDetail | null
 
-  if (!inspection) redirect('/inspections')
+  if (!inspection) redirect('/fleet')
   const ve = inspection.vehicle_equipment
 
   // Fetch checklist items for this inspection
@@ -51,7 +51,7 @@ export default async function InspectionDetailPage({ params }: { params: Promise
 
   return (
     <>
-      <PageHeader title="Inspection Detail" action={<Link href="/inspections" className="text-sm text-gray-500 hover:text-gray-900 transition">{'\u2190'} Back to list</Link>} />
+      <PageHeader title="Inspection Detail" action={<Link href="/fleet" className="text-sm text-gray-500 hover:text-gray-900 transition">{'\u2190'} Back to list</Link>} />
       <div className="max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="glass-card p-5 md:p-6 space-y-4">
           <h3 className="text-sm font-medium text-gray-400 uppercase">Inspection Info</h3>

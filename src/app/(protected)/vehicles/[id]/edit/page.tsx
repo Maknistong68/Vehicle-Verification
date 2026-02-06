@@ -23,7 +23,7 @@ export default async function EditVehiclePage({ params }: { params: Promise<{ id
     .eq('id', id)
     .single()
 
-  if (!vehicle) redirect('/vehicles')
+  if (!vehicle) redirect('/fleet')
 
   const [companiesRes, equipmentTypesRes] = await Promise.all([
     supabase.from('companies').select('id, name').eq('is_active', true).order('name'),

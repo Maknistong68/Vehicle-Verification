@@ -23,20 +23,12 @@ const navItems = [
     mobileOrder: 1,
   },
   {
-    label: 'Inspections',
-    href: '/inspections',
+    label: 'Fleet',
+    href: '/fleet',
     icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4',
     filledIcon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4',
-    roles: ['owner', 'admin', 'inspector', 'verifier'] as UserRole[],
+    roles: ['owner', 'admin', 'inspector', 'contractor', 'verifier'] as UserRole[],
     mobileOrder: 2,
-  },
-  {
-    label: 'Vehicles',
-    href: '/vehicles',
-    icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4',
-    filledIcon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4',
-    roles: ['owner', 'admin', 'contractor'] as UserRole[],
-    mobileOrder: 3,
   },
   {
     label: 'Lookup',
@@ -44,7 +36,7 @@ const navItems = [
     icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z',
     filledIcon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z',
     roles: ['owner', 'admin', 'inspector', 'contractor', 'verifier'] as UserRole[],
-    mobileOrder: 4,
+    mobileOrder: 3,
   },
   {
     label: 'Appointments',
@@ -52,7 +44,7 @@ const navItems = [
     icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
     filledIcon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
     roles: ['owner', 'admin', 'inspector'] as UserRole[],
-    mobileOrder: 5,
+    mobileOrder: 4,
   },
   {
     label: 'Users',
@@ -60,7 +52,7 @@ const navItems = [
     icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z',
     filledIcon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z',
     roles: ['owner', 'admin'] as UserRole[],
-    mobileOrder: 6,
+    mobileOrder: 5,
   },
   {
     label: 'Audit Logs',
@@ -68,7 +60,7 @@ const navItems = [
     icon: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z',
     filledIcon: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z',
     roles: ['owner'] as UserRole[],
-    mobileOrder: 7,
+    mobileOrder: 6,
   },
 ]
 
