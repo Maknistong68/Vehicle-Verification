@@ -5,11 +5,11 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
 interface Props {
-  vehicles: { id: string; plate_number: string; driver_name: string | null }[]
+  companies: { id: string; name: string }[]
   inspectors: { id: string; full_name: string }[]
 }
 
-export function CreateAppointmentForm({ vehicles, inspectors }: Props) {
+export function CreateAssignmentForm({ companies, inspectors }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
@@ -24,13 +24,13 @@ export function CreateAppointmentForm({ vehicles, inspectors }: Props) {
     const { data: { user } } = await supabase.auth.getUser()
 
     const { error: insertError } = await supabase
-      .from('appointments')
+      .from('assignments')
       .insert({
-        vehicle_equipment_id: fd.get('vehicle_id') as string,
+        company_id: fd.get('company_id') as string,
         inspector_id: (fd.get('inspector_id') as string) || null,
         scheduled_date: fd.get('scheduled_date') as string,
-        scheduled_by: user?.id,
-        status: 'scheduled',
+        assigned_by: user?.id,
+        status: 'assigned',
         notes: (fd.get('notes') as string) || null,
       })
 
@@ -40,7 +40,7 @@ export function CreateAppointmentForm({ vehicles, inspectors }: Props) {
       return
     }
 
-    router.push('/appointments')
+    router.push('/assignments')
     router.refresh()
   }
 
@@ -48,11 +48,11 @@ export function CreateAppointmentForm({ vehicles, inspectors }: Props) {
     <div className="max-w-2xl">
       <form onSubmit={handleSubmit} className="glass-card p-5 md:p-6 space-y-5">
         <div>
-          <label className="block text-sm font-medium text-gray-600 mb-1.5">Vehicle / Equipment</label>
-          <select name="vehicle_id" required className="glass-input">
-            <option value="">Select vehicle or equipment...</option>
-            {vehicles.map(v => (
-              <option key={v.id} value={v.id}>{v.plate_number} — {v.driver_name || 'No driver'}</option>
+          <label className="block text-sm font-medium text-gray-600 mb-1.5">Company</label>
+          <select name="company_id" required className="glass-input">
+            <option value="">Select company...</option>
+            {companies.map(c => (
+              <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
         </div>
@@ -85,7 +85,7 @@ export function CreateAppointmentForm({ vehicles, inspectors }: Props) {
 
         <div className="flex flex-col sm:flex-row gap-3 pt-2">
           <button type="submit" disabled={loading} className="btn-primary">
-            {loading ? 'Creating...' : 'Create Appointment'}
+            {loading ? 'Creating...' : 'Create Assignment'}
           </button>
           <button type="button" onClick={() => router.back()} className="btn-secondary">
             Cancel

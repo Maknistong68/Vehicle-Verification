@@ -53,11 +53,19 @@ CREATE TYPE inspection_status AS ENUM (
   'cancelled'
 );
 
-CREATE TYPE appointment_status AS ENUM (
-  'scheduled',
-  'confirmed',
-  'completed',
-  'cancelled'
+CREATE TYPE assignment_status AS ENUM (
+  'assigned',
+  'rescheduled',
+  'done',
+  'delayed'
+);
+
+CREATE TYPE notification_type AS ENUM (
+  'assignment_new',
+  'assignment_rescheduled',
+  'assignment_delayed',
+  'assignment_done',
+  'general'
 );
 
 
@@ -118,13 +126,27 @@ CREATE TABLE vehicles_equipment (
   updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 3.5 inspections
+-- 3.5 assignments (replaces appointments - company-level scheduling)
+CREATE TABLE assignments (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id      UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  scheduled_date  TIMESTAMPTZ NOT NULL,
+  assigned_by     UUID REFERENCES user_profiles(id) ON DELETE SET NULL,
+  inspector_id    UUID REFERENCES user_profiles(id) ON DELETE SET NULL,
+  status          assignment_status NOT NULL DEFAULT 'assigned',
+  notes           TEXT,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 3.6 inspections
 CREATE TABLE inspections (
   id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   vehicle_equipment_id  UUID NOT NULL REFERENCES vehicles_equipment(id) ON DELETE CASCADE,
   inspection_type       inspection_type NOT NULL DEFAULT 'routine',
   assigned_inspector_id UUID REFERENCES user_profiles(id) ON DELETE SET NULL,
   assigned_by           UUID REFERENCES user_profiles(id) ON DELETE SET NULL,
+  assignment_id         UUID REFERENCES assignments(id) ON DELETE SET NULL,
   scheduled_date        TIMESTAMPTZ,
   started_at            TIMESTAMPTZ,
   completed_at          TIMESTAMPTZ,
@@ -138,7 +160,7 @@ CREATE TABLE inspections (
   updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 3.6 inspection_checklist_items
+-- 3.7 inspection_checklist_items
 CREATE TABLE inspection_checklist_items (
   id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   inspection_id     UUID NOT NULL REFERENCES inspections(id) ON DELETE CASCADE,
@@ -149,20 +171,20 @@ CREATE TABLE inspection_checklist_items (
   checked_at        TIMESTAMPTZ
 );
 
--- 3.7 appointments
-CREATE TABLE appointments (
-  id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  vehicle_equipment_id  UUID NOT NULL REFERENCES vehicles_equipment(id) ON DELETE CASCADE,
-  scheduled_date        TIMESTAMPTZ NOT NULL,
-  scheduled_by          UUID REFERENCES user_profiles(id) ON DELETE SET NULL,
-  inspector_id          UUID REFERENCES user_profiles(id) ON DELETE SET NULL,
-  status                appointment_status NOT NULL DEFAULT 'scheduled',
-  notes                 TEXT,
-  created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
+-- 3.8 notifications
+CREATE TABLE notifications (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id         UUID NOT NULL REFERENCES user_profiles(id) ON DELETE CASCADE,
+  type            notification_type NOT NULL DEFAULT 'general',
+  title           TEXT NOT NULL,
+  message         TEXT,
+  reference_id    UUID,
+  reference_table TEXT,
+  is_read         BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 3.8 audit_logs (immutable - no UPDATE or DELETE ever permitted)
+-- 3.9 audit_logs (immutable - no UPDATE or DELETE ever permitted)
 CREATE TABLE audit_logs (
   id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   user_id     UUID,
@@ -269,15 +291,24 @@ CREATE INDEX idx_insp_result ON inspections(result);
 CREATE INDEX idx_insp_scheduled_date ON inspections(scheduled_date);
 CREATE INDEX idx_insp_inspection_type ON inspections(inspection_type);
 
+-- inspections.assignment_id
+CREATE INDEX idx_insp_assignment_id ON inspections(assignment_id);
+
 -- inspection_checklist_items
 CREATE INDEX idx_checklist_inspection_id ON inspection_checklist_items(inspection_id);
 
--- appointments
-CREATE INDEX idx_appt_vehicle_equipment_id ON appointments(vehicle_equipment_id);
-CREATE INDEX idx_appt_scheduled_by ON appointments(scheduled_by);
-CREATE INDEX idx_appt_inspector_id ON appointments(inspector_id);
-CREATE INDEX idx_appt_status ON appointments(status);
-CREATE INDEX idx_appt_scheduled_date ON appointments(scheduled_date);
+-- assignments
+CREATE INDEX idx_assign_company_id ON assignments(company_id);
+CREATE INDEX idx_assign_assigned_by ON assignments(assigned_by);
+CREATE INDEX idx_assign_inspector_id ON assignments(inspector_id);
+CREATE INDEX idx_assign_status ON assignments(status);
+CREATE INDEX idx_assign_scheduled_date ON assignments(scheduled_date);
+
+-- notifications
+CREATE INDEX idx_notif_user_id ON notifications(user_id);
+CREATE INDEX idx_notif_is_read ON notifications(is_read);
+CREATE INDEX idx_notif_created_at ON notifications(created_at);
+CREATE INDEX idx_notif_reference ON notifications(reference_id, reference_table);
 
 -- audit_logs
 CREATE INDEX idx_audit_user_id ON audit_logs(user_id);
@@ -295,9 +326,10 @@ ALTER TABLE user_profiles              ENABLE ROW LEVEL SECURITY;
 ALTER TABLE companies                  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE equipment_types            ENABLE ROW LEVEL SECURITY;
 ALTER TABLE vehicles_equipment         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE assignments                ENABLE ROW LEVEL SECURITY;
 ALTER TABLE inspections                ENABLE ROW LEVEL SECURITY;
 ALTER TABLE inspection_checklist_items ENABLE ROW LEVEL SECURITY;
-ALTER TABLE appointments               ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notifications              ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_logs                 ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================================
@@ -643,57 +675,83 @@ CREATE POLICY "checklist_verifier_select"
 
 
 -- **************************************************************************
--- 7.7 appointments POLICIES
+-- 7.7 assignments POLICIES
 -- **************************************************************************
 
-CREATE POLICY "appointments_owner_select"
-  ON appointments FOR SELECT TO authenticated
+CREATE POLICY "assignments_owner_select"
+  ON assignments FOR SELECT TO authenticated
   USING (get_user_role() = 'owner');
 
-CREATE POLICY "appointments_owner_insert"
-  ON appointments FOR INSERT TO authenticated
+CREATE POLICY "assignments_owner_insert"
+  ON assignments FOR INSERT TO authenticated
   WITH CHECK (get_user_role() = 'owner');
 
-CREATE POLICY "appointments_owner_update"
-  ON appointments FOR UPDATE TO authenticated
+CREATE POLICY "assignments_owner_update"
+  ON assignments FOR UPDATE TO authenticated
   USING (get_user_role() = 'owner')
   WITH CHECK (get_user_role() = 'owner');
 
-CREATE POLICY "appointments_owner_delete"
-  ON appointments FOR DELETE TO authenticated
+CREATE POLICY "assignments_owner_delete"
+  ON assignments FOR DELETE TO authenticated
   USING (get_user_role() = 'owner');
 
-CREATE POLICY "appointments_admin_select"
-  ON appointments FOR SELECT TO authenticated
+CREATE POLICY "assignments_admin_select"
+  ON assignments FOR SELECT TO authenticated
   USING (get_user_role() = 'admin');
 
-CREATE POLICY "appointments_admin_insert"
-  ON appointments FOR INSERT TO authenticated
+CREATE POLICY "assignments_admin_insert"
+  ON assignments FOR INSERT TO authenticated
   WITH CHECK (get_user_role() = 'admin');
 
-CREATE POLICY "appointments_admin_update"
-  ON appointments FOR UPDATE TO authenticated
+CREATE POLICY "assignments_admin_update"
+  ON assignments FOR UPDATE TO authenticated
   USING (get_user_role() = 'admin')
   WITH CHECK (get_user_role() = 'admin');
 
-CREATE POLICY "appointments_admin_delete"
-  ON appointments FOR DELETE TO authenticated
+CREATE POLICY "assignments_admin_delete"
+  ON assignments FOR DELETE TO authenticated
   USING (get_user_role() = 'admin');
 
-CREATE POLICY "appointments_inspector_select"
-  ON appointments FOR SELECT TO authenticated
+CREATE POLICY "assignments_inspector_select"
+  ON assignments FOR SELECT TO authenticated
   USING (get_user_role() = 'inspector' AND inspector_id = auth.uid());
 
-CREATE POLICY "appointments_contractor_select"
-  ON appointments FOR SELECT TO authenticated
+CREATE POLICY "assignments_inspector_update"
+  ON assignments FOR UPDATE TO authenticated
+  USING (get_user_role() = 'inspector' AND inspector_id = auth.uid())
+  WITH CHECK (get_user_role() = 'inspector' AND inspector_id = auth.uid());
+
+CREATE POLICY "assignments_contractor_select"
+  ON assignments FOR SELECT TO authenticated
   USING (get_user_role() = 'contractor');
 
-CREATE POLICY "appointments_verifier_select"
-  ON appointments FOR SELECT TO authenticated
+CREATE POLICY "assignments_verifier_select"
+  ON assignments FOR SELECT TO authenticated
   USING (get_user_role() = 'verifier');
 
 -- **************************************************************************
--- 7.8 audit_logs POLICIES (IMMUTABLE - INSERT and SELECT only)
+-- 7.8 notifications POLICIES
+-- **************************************************************************
+
+CREATE POLICY "notifications_select_own"
+  ON notifications FOR SELECT TO authenticated
+  USING (user_id = auth.uid());
+
+CREATE POLICY "notifications_update_own"
+  ON notifications FOR UPDATE TO authenticated
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "notifications_insert"
+  ON notifications FOR INSERT TO authenticated
+  WITH CHECK (TRUE);
+
+CREATE POLICY "notifications_owner_delete"
+  ON notifications FOR DELETE TO authenticated
+  USING (get_user_role() = 'owner' OR user_id = auth.uid());
+
+-- **************************************************************************
+-- 7.9 audit_logs POLICIES (IMMUTABLE - INSERT and SELECT only)
 -- **************************************************************************
 
 -- Owner: SELECT only
@@ -788,8 +846,8 @@ CREATE TRIGGER trg_inspections_audit
   FOR EACH ROW
   EXECUTE FUNCTION audit_trigger_function();
 
-CREATE TRIGGER trg_appointments_audit
-  AFTER INSERT OR UPDATE OR DELETE ON appointments
+CREATE TRIGGER trg_assignments_audit
+  AFTER INSERT OR UPDATE OR DELETE ON assignments
   FOR EACH ROW
   EXECUTE FUNCTION audit_trigger_function();
 
@@ -819,9 +877,85 @@ CREATE TRIGGER trg_inspections_updated_at
   BEFORE UPDATE ON inspections
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
-CREATE TRIGGER trg_appointments_updated_at
-  BEFORE UPDATE ON appointments
+CREATE TRIGGER trg_assignments_updated_at
+  BEFORE UPDATE ON assignments
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- ============================================================================
+-- 11. NOTIFICATION TRIGGER ON ASSIGNMENTS
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION assignment_notification_trigger()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_company_name TEXT;
+  v_notif_type notification_type;
+  v_title TEXT;
+  v_message TEXT;
+BEGIN
+  IF NEW.inspector_id IS NULL THEN
+    RETURN NEW;
+  END IF;
+
+  SELECT name INTO v_company_name FROM companies WHERE id = NEW.company_id;
+
+  IF TG_OP = 'INSERT' THEN
+    v_notif_type := 'assignment_new';
+    v_title := 'New Assignment';
+    v_message := format('You have been assigned to inspect %s on %s',
+      COALESCE(v_company_name, 'Unknown Company'),
+      to_char(NEW.scheduled_date, 'Mon DD, YYYY HH12:MI AM'));
+  ELSIF TG_OP = 'UPDATE' THEN
+    IF NEW.status = 'rescheduled' AND OLD.status != 'rescheduled' THEN
+      v_notif_type := 'assignment_rescheduled';
+      v_title := 'Assignment Rescheduled';
+      v_message := format('Your assignment for %s has been rescheduled to %s',
+        COALESCE(v_company_name, 'Unknown Company'),
+        to_char(NEW.scheduled_date, 'Mon DD, YYYY HH12:MI AM'));
+    ELSIF NEW.status = 'delayed' AND OLD.status != 'delayed' THEN
+      v_notif_type := 'assignment_delayed';
+      v_title := 'Assignment Delayed';
+      v_message := format('Assignment for %s has been marked as delayed',
+        COALESCE(v_company_name, 'Unknown Company'));
+    ELSIF NEW.status = 'done' AND OLD.status != 'done' THEN
+      v_notif_type := 'assignment_done';
+      v_title := 'Assignment Completed';
+      v_message := format('Assignment for %s has been marked as done',
+        COALESCE(v_company_name, 'Unknown Company'));
+    ELSIF NEW.inspector_id != OLD.inspector_id THEN
+      v_notif_type := 'assignment_new';
+      v_title := 'New Assignment';
+      v_message := format('You have been assigned to inspect %s on %s',
+        COALESCE(v_company_name, 'Unknown Company'),
+        to_char(NEW.scheduled_date, 'Mon DD, YYYY HH12:MI AM'));
+    ELSE
+      RETURN NEW;
+    END IF;
+  ELSE
+    RETURN NEW;
+  END IF;
+
+  INSERT INTO notifications (user_id, type, title, message, reference_id, reference_table)
+  VALUES (NEW.inspector_id, v_notif_type, v_title, v_message, NEW.id, 'assignments');
+
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trg_assignment_notifications
+  AFTER INSERT OR UPDATE ON assignments
+  FOR EACH ROW
+  EXECUTE FUNCTION assignment_notification_trigger();
+
+-- ============================================================================
+-- 12. ENABLE REALTIME ON NOTIFICATIONS
+-- ============================================================================
+
+ALTER PUBLICATION supabase_realtime ADD TABLE notifications;
 
 -- ============================================================================
 -- END OF SCHEMA

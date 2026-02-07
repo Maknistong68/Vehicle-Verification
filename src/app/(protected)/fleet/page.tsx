@@ -130,7 +130,6 @@ export default async function FleetPage({ searchParams }: { searchParams: Promis
     supabase.from('equipment_types').select('id, name, category, classification').eq('is_active', true).order('name'),
   ])
 
-  const canAddVehicle = role === 'owner' || role === 'admin'
   const canNewInspection = role === 'owner' || role === 'admin' || role === 'inspector'
 
   // Compute display count
@@ -144,24 +143,14 @@ export default async function FleetPage({ searchParams }: { searchParams: Promis
         title="Fleet"
         description={`${displayCount} vehicles & equipment${searchQuery ? ` matching "${searchQuery}"` : ''}.`}
         action={
-          <div className="flex items-center gap-2">
-            {canNewInspection && (
-              <Link href="/inspections/new" className="btn-primary w-full sm:w-auto">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                </svg>
-                New Inspection
-              </Link>
-            )}
-            {canAddVehicle && (
-              <Link href="/vehicles/new" className="btn-primary w-full sm:w-auto">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Add Vehicle
-              </Link>
-            )}
-          </div>
+          canNewInspection ? (
+            <Link href="/inspections/new" className="btn-primary w-full sm:w-auto">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+              </svg>
+              New Inspection
+            </Link>
+          ) : undefined
         }
       />
 

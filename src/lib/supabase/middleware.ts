@@ -74,8 +74,8 @@ export async function updateSession(request: NextRequest) {
       }
 
       // Admin-only routes (owner + admin)
-      const adminRoutes = ['/users', '/vehicles/new', '/appointments/new']
-      const adminEditPattern = /^\/(vehicles|appointments)\/[^/]+\/edit/
+      const adminRoutes = ['/users', '/assignments/new']
+      const adminEditPattern = /^\/assignments\/[^/]+\/edit/
       if ((adminRoutes.some(r => pathname.startsWith(r)) || adminEditPattern.test(pathname)) && !['owner', 'admin'].includes(role || '')) {
         const url = request.nextUrl.clone()
         url.pathname = '/dashboard'

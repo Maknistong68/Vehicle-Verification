@@ -3,11 +3,11 @@ import { redirect } from 'next/navigation'
 import { PageHeader } from '@/components/page-header'
 import { UserRole } from '@/lib/types'
 import Link from 'next/link'
-import { AppointmentsList } from './appointments-list'
+import { AssignmentsList } from './assignments-list'
 
 const PAGE_SIZE = 25
 
-export default async function AppointmentsPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
+export default async function AssignmentsPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const { page: pageParam } = await searchParams
   const currentPage = Math.max(1, parseInt(pageParam || '1', 10) || 1)
   const from = (currentPage - 1) * PAGE_SIZE
@@ -28,7 +28,7 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
 
   // Count query
   let countQuery = supabase
-    .from('appointments')
+    .from('assignments')
     .select('*', { count: 'exact', head: true })
   if (role === 'inspector') {
     countQuery = countQuery.eq('inspector_id', user.id)
@@ -37,12 +37,12 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
 
   // Data query with pagination
   let query = supabase
-    .from('appointments')
+    .from('assignments')
     .select(`
       id, scheduled_date, status, notes,
-      vehicle_equipment:vehicles_equipment(plate_number, driver_name),
-      inspector:user_profiles!appointments_inspector_id_fkey(full_name),
-      scheduler:user_profiles!appointments_scheduled_by_fkey(full_name)
+      company:companies(name),
+      inspector:user_profiles!assignments_inspector_id_fkey(full_name),
+      assigner:user_profiles!assignments_assigned_by_fkey(full_name)
     `)
     .order('scheduled_date', { ascending: false })
     .range(from, to)
@@ -51,32 +51,32 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
     query = query.eq('inspector_id', user.id)
   }
 
-  const { data: appointments } = await query
+  const { data: assignments } = await query
 
   const canCreate = role === 'owner' || role === 'admin'
 
   return (
     <>
       <PageHeader
-        title="Appointments"
-        description="Manage inspection appointments and schedules."
+        title="Assignments"
+        description="Manage inspection assignments and schedules."
         action={
           canCreate ? (
             <Link
-              href="/appointments/new"
+              href="/assignments/new"
               className="btn-primary w-full sm:w-auto"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              New Appointment
+              New Assignment
             </Link>
           ) : undefined
         }
       />
 
-      <AppointmentsList
-        appointments={(appointments || []) as any}
+      <AssignmentsList
+        assignments={(assignments || []) as any}
         totalCount={totalCount ?? 0}
         currentPage={currentPage}
         pageSize={PAGE_SIZE}

@@ -3,7 +3,8 @@ export type UserRole = 'owner' | 'admin' | 'inspector' | 'contractor' | 'verifie
 export type InspectionResult = 'pass' | 'fail' | 'pending'
 export type InspectionStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled'
 export type VehicleStatus = 'verified' | 'inspection_overdue' | 'updated_inspection_required' | 'rejected' | 'blacklisted'
-export type AppointmentStatus = 'scheduled' | 'confirmed' | 'completed' | 'cancelled'
+export type AssignmentStatus = 'assigned' | 'rescheduled' | 'done' | 'delayed'
+export type NotificationType = 'assignment_new' | 'assignment_rescheduled' | 'assignment_delayed' | 'assignment_done' | 'general'
 export type EquipmentCategory = 'vehicle' | 'heavy_equipment'
 export type InspectionType = 'routine' | 'follow_up' | 're_inspection'
 
@@ -65,6 +66,7 @@ export interface Inspection {
   inspection_type: InspectionType
   assigned_inspector_id: string | null
   assigned_by: string | null
+  assignment_id: string | null
   scheduled_date: string
   started_at: string | null
   completed_at: string | null
@@ -92,20 +94,32 @@ export interface InspectionChecklistItem {
   checked_at: string | null
 }
 
-export interface Appointment {
+export interface Assignment {
   id: string
-  vehicle_equipment_id: string
+  company_id: string
   scheduled_date: string
-  scheduled_by: string | null
+  assigned_by: string | null
   inspector_id: string | null
-  status: AppointmentStatus
+  status: AssignmentStatus
   notes: string | null
   created_at: string
   updated_at: string
   // Joined fields
-  vehicle_equipment?: VehicleEquipment
+  company?: Company
   inspector?: UserProfile
-  scheduler?: UserProfile
+  assigner?: UserProfile
+}
+
+export interface Notification {
+  id: string
+  user_id: string
+  type: NotificationType
+  title: string
+  message: string | null
+  reference_id: string | null
+  reference_table: string | null
+  is_read: boolean
+  created_at: string
 }
 
 export interface AuditLog {

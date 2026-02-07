@@ -5,15 +5,17 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
 interface Props {
-  vehicles: { id: string; plate_number: string; driver_name: string | null }[]
+  vehicles: { id: string; plate_number: string; driver_name: string | null; company_id?: string | null }[]
   inspectors: { id: string; full_name: string }[]
   equipmentTypes: { id: string; name: string; category: string }[]
   currentUserId: string
   currentUserRole: string
   currentUserName: string
+  assignmentId?: string | null
+  companyName?: string | null
 }
 
-export function CreateInspectionForm({ vehicles: initialVehicles, inspectors, equipmentTypes, currentUserId, currentUserRole, currentUserName }: Props) {
+export function CreateInspectionForm({ vehicles: initialVehicles, inspectors, equipmentTypes, currentUserId, currentUserRole, currentUserName, assignmentId, companyName }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
@@ -108,7 +110,7 @@ export function CreateInspectionForm({ vehicles: initialVehicles, inspectors, eq
     const fd = new FormData(e.currentTarget)
     const { data: { user } } = await supabase.auth.getUser()
 
-    const { error: insertError } = await supabase.from('inspections').insert({
+    const insertData: Record<string, unknown> = {
       vehicle_equipment_id: selectedVehicleId,
       assigned_inspector_id: isInspector ? currentUserId : fd.get('inspector_id') as string,
       assigned_by: user?.id,
@@ -117,15 +119,38 @@ export function CreateInspectionForm({ vehicles: initialVehicles, inspectors, eq
       notes: (fd.get('notes') as string) || null,
       result: 'pending',
       status: 'scheduled',
-    })
+    }
+
+    // Link to assignment if provided
+    if (assignmentId) {
+      insertData.assignment_id = assignmentId
+    }
+
+    const { error: insertError } = await supabase.from('inspections').insert(insertData)
 
     if (insertError) { setError(insertError.message); setLoading(false); return }
-    router.push('/inspections')
+
+    // If coming from an assignment, go back to the assignment detail page
+    if (assignmentId) {
+      router.push(`/assignments/${assignmentId}`)
+    } else {
+      router.push('/inspections')
+    }
     router.refresh()
   }
 
   return (
     <div className="max-w-2xl">
+      {/* Assignment context banner */}
+      {assignmentId && companyName && (
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
+          <svg className="w-4 h-4 text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p className="text-sm text-blue-700">Creating inspection for assignment at <strong>{companyName}</strong></p>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="glass-card p-5 md:p-6 space-y-5">
         {/* Vehicle searchable combobox */}
         <div>

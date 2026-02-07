@@ -4,6 +4,7 @@ import { Sidebar } from '@/components/sidebar'
 import { UserRole } from '@/lib/types'
 import { RoleProvider } from '@/lib/role-context'
 import { POVBanner } from '@/components/pov-banner'
+import { NotificationBell } from '@/components/notification-bell'
 
 export const dynamic = 'force-dynamic'
 
@@ -53,7 +54,10 @@ export default async function ProtectedLayout({
         />
         <main className="flex-1 overflow-auto pb-20 md:pb-0">
           <POVBanner />
-          <div className="p-4 md:p-6 lg:p-8">
+          <div className="flex items-center justify-end px-4 md:px-6 lg:px-8 pt-3 md:pt-4">
+            <NotificationBell userId={profile.id} />
+          </div>
+          <div className="p-4 md:p-6 lg:p-8 pt-2">
             {children}
           </div>
         </main>

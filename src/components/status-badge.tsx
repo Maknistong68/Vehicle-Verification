@@ -62,12 +62,12 @@ export function getVehicleStatusVariant(status: string): BadgeVariant {
   }
 }
 
-export function getAppointmentStatusVariant(status: string): BadgeVariant {
+export function getAssignmentStatusVariant(status: string): BadgeVariant {
   switch (status) {
-    case 'completed': return 'success'
-    case 'confirmed': return 'info'
-    case 'scheduled': return 'warning'
-    case 'cancelled': return 'neutral'
+    case 'done': return 'success'
+    case 'assigned': return 'info'
+    case 'rescheduled': return 'warning'
+    case 'delayed': return 'danger'
     default: return 'neutral'
   }
 }
