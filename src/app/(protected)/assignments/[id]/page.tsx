@@ -46,8 +46,6 @@ export default async function AssignmentDetailPage({ params }: { params: Promise
 
   const canManage = role === 'owner' || role === 'admin'
   const canUpdateStatus = canManage || role === 'inspector'
-  const companyId = (assignment.company as any)?.id || assignment.company_id
-
   return (
     <>
       <PageHeader
@@ -56,7 +54,7 @@ export default async function AssignmentDetailPage({ params }: { params: Promise
           <div className="flex items-center gap-2">
             {canUpdateStatus && assignment.status !== 'done' && (
               <Link
-                href={`/inspections/new?assignment_id=${assignment.id}&company_id=${companyId}`}
+                href="/inspections/new"
                 className="btn-primary w-full sm:w-auto"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

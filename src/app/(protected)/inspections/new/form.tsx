@@ -8,17 +8,19 @@ import { sanitizeText } from '@/lib/sanitize'
 
 interface Props {
   vehicles: { id: string; plate_number: string; driver_name: string | null; company_id?: string | null }[]
-  inspectors: { id: string; full_name: string }[]
   equipmentTypes: { id: string; name: string; category: string }[]
   failureReasons: { id: string; name: string }[]
   currentUserId: string
   currentUserRole: string
   currentUserName: string
-  assignmentId?: string | null
-  companyName?: string | null
 }
 
-export function CreateInspectionForm({ vehicles: initialVehicles, inspectors, equipmentTypes, failureReasons, currentUserId, currentUserRole, currentUserName, assignmentId, companyName }: Props) {
+const formatDatetimeLocal = (date: Date) => {
+  const pad = (n: number) => n.toString().padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
+export function CreateInspectionForm({ vehicles: initialVehicles, equipmentTypes, failureReasons, currentUserId, currentUserRole, currentUserName }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
@@ -38,14 +40,17 @@ export function CreateInspectionForm({ vehicles: initialVehicles, inspectors, eq
   const [newEquipmentTypeId, setNewEquipmentTypeId] = useState('')
   const [addingVehicle, setAddingVehicle] = useState(false)
   const [plateError, setPlateError] = useState<string | null>(null)
+  const [driverError, setDriverError] = useState<string | null>(null)
+  const [equipmentError, setEquipmentError] = useState<string | null>(null)
 
-  // Instant result state
-  const [recordNow, setRecordNow] = useState(false)
+  // Scheduled date state (auto-filled with current time)
+  const [scheduledDate, setScheduledDate] = useState(() => formatDatetimeLocal(new Date()))
+
+  // Result state
   const [result, setResult] = useState<'pass' | 'fail' | ''>('')
   const [selectedReasons, setSelectedReasons] = useState<Set<string>>(new Set())
   const [otherChecked, setOtherChecked] = useState(false)
   const [otherText, setOtherText] = useState('')
-  const isInspector = currentUserRole === 'inspector'
 
   // Filter vehicles based on search
   const filteredVehicles = useMemo(() => {
@@ -91,20 +96,40 @@ export function CreateInspectionForm({ vehicles: initialVehicles, inspectors, eq
   const handleAddVehicle = async () => {
     const cleaned = cleanPlateNumber(newPlate)
     const plateErr = validatePlateNumber(cleaned)
+    let hasError = false
+
     if (plateErr) {
       setPlateError(plateErr)
-      return
+      hasError = true
+    } else {
+      setPlateError(null)
     }
-    setPlateError(null)
+
+    if (!newDriver.trim()) {
+      setDriverError('Driver name is required')
+      hasError = true
+    } else {
+      setDriverError(null)
+    }
+
+    if (!newEquipmentTypeId) {
+      setEquipmentError('Equipment type is required')
+      hasError = true
+    } else {
+      setEquipmentError(null)
+    }
+
+    if (hasError) return
+
     setAddingVehicle(true)
     setError(null)
 
     const insertData: Record<string, unknown> = {
       plate_number: cleaned,
+      driver_name: sanitizeText(newDriver).slice(0, 100),
+      equipment_type_id: newEquipmentTypeId,
       status: 'updated_inspection_required',
     }
-    if (newDriver.trim()) insertData.driver_name = sanitizeText(newDriver).slice(0, 100)
-    if (newEquipmentTypeId) insertData.equipment_type_id = newEquipmentTypeId
 
     const { data, error: insertError } = await supabase
       .from('vehicles_equipment')
@@ -127,6 +152,8 @@ export function CreateInspectionForm({ vehicles: initialVehicles, inspectors, eq
       setNewPlate('')
       setNewDriver('')
       setNewEquipmentTypeId('')
+      setDriverError(null)
+      setEquipmentError(null)
     }
     setAddingVehicle(false)
   }
@@ -138,18 +165,15 @@ export function CreateInspectionForm({ vehicles: initialVehicles, inspectors, eq
       return
     }
 
-    // Validate instant result fields
-    if (recordNow) {
-      if (!result) {
-        setError('Please select an inspection result')
+    if (!result) {
+      setError('Please select an inspection result')
+      return
+    }
+    if (result === 'fail') {
+      const hasReasons = selectedReasons.size > 0 || (otherChecked && otherText.trim())
+      if (!hasReasons) {
+        setError('Please select at least one failure reason')
         return
-      }
-      if (result === 'fail') {
-        const hasReasons = selectedReasons.size > 0 || (otherChecked && otherText.trim())
-        if (!hasReasons) {
-          setError('Please select at least one failure reason')
-          return
-        }
       }
     }
 
@@ -159,32 +183,23 @@ export function CreateInspectionForm({ vehicles: initialVehicles, inspectors, eq
     const fd = new FormData(e.currentTarget)
     const { data: { user } } = await supabase.auth.getUser()
 
-    const failureReason = recordNow && result === 'fail'
+    const failureReason = result === 'fail'
       ? sanitizeText(buildFailureReason()).slice(0, 500)
       : null
 
     const insertData: Record<string, unknown> = {
       vehicle_equipment_id: selectedVehicleId,
-      assigned_inspector_id: isInspector ? currentUserId : fd.get('inspector_id') as string,
+      assigned_inspector_id: currentUserId,
       assigned_by: user?.id,
       scheduled_date: fd.get('scheduled_date') as string,
       inspection_type: fd.get('inspection_type') as string,
-      notes: sanitizeText(fd.get('notes') as string).slice(0, 1000) || null,
-      result: recordNow ? result : 'pending',
-      status: recordNow ? 'completed' : 'scheduled',
+      result: result,
+      status: 'completed',
+      completed_at: new Date().toISOString(),
+      failure_reason: failureReason,
     }
 
-    if (recordNow) {
-      insertData.completed_at = new Date().toISOString()
-      insertData.failure_reason = failureReason
-    }
-
-    // Link to assignment if provided
-    if (assignmentId) {
-      insertData.assignment_id = assignmentId
-    }
-
-    const { data: inspectionData, error: insertError } = await supabase
+    const { error: insertError } = await supabase
       .from('inspections')
       .insert(insertData)
       .select('id')
@@ -192,27 +207,12 @@ export function CreateInspectionForm({ vehicles: initialVehicles, inspectors, eq
 
     if (insertError) { setError('Failed to create inspection. Please try again.'); setLoading(false); return }
 
-    // If coming from an assignment, go back to the assignment detail page
-    if (assignmentId) {
-      router.push(`/assignments/${assignmentId}`)
-    } else {
-      router.push('/inspections')
-    }
+    router.push('/inspections')
     router.refresh()
   }
 
   return (
     <div className="max-w-2xl">
-      {/* Assignment context banner */}
-      {assignmentId && companyName && (
-        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
-          <svg className="w-4 h-4 text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <p className="text-sm text-blue-700">Creating inspection for assignment at <strong>{companyName}</strong></p>
-        </div>
-      )}
-
       <form onSubmit={handleSubmit} className="glass-card p-5 md:p-6 space-y-5">
         {/* Vehicle searchable combobox */}
         <div>
@@ -301,20 +301,27 @@ export function CreateInspectionForm({ vehicles: initialVehicles, inspectors, eq
                 {plateError && <p className="text-xs text-red-500 mt-1">{plateError}</p>}
               </div>
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Driver Name (optional)</label>
+                <label className="block text-xs text-gray-500 mb-1">Driver Name *</label>
                 <input
                   type="text"
                   value={newDriver}
-                  onChange={(e) => setNewDriver(e.target.value)}
+                  onChange={(e) => {
+                    setNewDriver(e.target.value)
+                    setDriverError(null)
+                  }}
                   placeholder="Driver full name"
                   className="glass-input text-sm"
                 />
+                {driverError && <p className="text-xs text-red-500 mt-1">{driverError}</p>}
               </div>
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Equipment Type (optional)</label>
+                <label className="block text-xs text-gray-500 mb-1">Equipment Type *</label>
                 <select
                   value={newEquipmentTypeId}
-                  onChange={(e) => setNewEquipmentTypeId(e.target.value)}
+                  onChange={(e) => {
+                    setNewEquipmentTypeId(e.target.value)
+                    setEquipmentError(null)
+                  }}
                   className="glass-input text-sm"
                 >
                   <option value="">Select type...</option>
@@ -324,19 +331,20 @@ export function CreateInspectionForm({ vehicles: initialVehicles, inspectors, eq
                     </option>
                   ))}
                 </select>
+                {equipmentError && <p className="text-xs text-red-500 mt-1">{equipmentError}</p>}
               </div>
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={handleAddVehicle}
-                  disabled={!newPlate.trim() || addingVehicle}
+                  disabled={!newPlate.trim() || !newDriver.trim() || !newEquipmentTypeId || addingVehicle}
                   className="btn-primary text-sm !py-2"
                 >
                   {addingVehicle ? 'Adding...' : 'Add Vehicle'}
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowAddVehicle(false)}
+                  onClick={() => { setShowAddVehicle(false); setDriverError(null); setEquipmentError(null) }}
                   className="btn-secondary text-sm !py-2"
                 >
                   Cancel
@@ -346,164 +354,124 @@ export function CreateInspectionForm({ vehicles: initialVehicles, inspectors, eq
           )}
         </div>
 
-
-        {/* Inspector field */}
-        {isInspector ? (
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1.5">Inspector</label>
-            <div className="glass-input text-sm text-gray-500 flex items-center">
-              <svg className="w-4 h-4 mr-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              {currentUserName} (You)
-            </div>
-          </div>
-        ) : (
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1.5">Assign Inspector</label>
-            <select name="inspector_id" required className="glass-input">
-              <option value="">Select inspector...</option>
-              {inspectors.map(i => <option key={i.id} value={i.id}>{i.full_name}</option>)}
-            </select>
-          </div>
-        )}
-
         <div>
           <label className="block text-sm font-medium text-gray-600 mb-1.5">Inspection Type</label>
           <select name="inspection_type" required className="glass-input">
-            <option value="routine">Routine</option>
+            <option value="new">New</option>
             <option value="follow_up">Follow Up</option>
             <option value="re_inspection">Re-Inspection</option>
           </select>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-600 mb-1.5">Scheduled Date</label>
-          <input type="datetime-local" name="scheduled_date" required className="glass-input" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-600 mb-1.5">Notes (optional)</label>
-          <textarea name="notes" rows={3} className="glass-input" placeholder="Additional notes..." />
+          <div className="flex gap-2">
+            <input
+              type="datetime-local"
+              name="scheduled_date"
+              required
+              value={scheduledDate}
+              onChange={(e) => setScheduledDate(e.target.value)}
+              className="glass-input flex-1"
+            />
+            <button
+              type="button"
+              onClick={() => setScheduledDate(formatDatetimeLocal(new Date()))}
+              className="btn-secondary text-sm whitespace-nowrap"
+            >
+              Reset to now
+            </button>
+          </div>
         </div>
 
-        {/* Record Result Now toggle */}
-        <div className="border-t border-gray-200 pt-5">
-          <label className="flex items-center gap-3 cursor-pointer">
-            <div className="relative">
-              <input
-                type="checkbox"
-                checked={recordNow}
-                onChange={() => {
-                  setRecordNow(!recordNow)
-                  if (recordNow) {
-                    setResult('')
-                    setSelectedReasons(new Set())
-                    setOtherChecked(false)
-                    setOtherText('')
-                  }
-                }}
-                className="sr-only peer"
-              />
-              <div className="w-9 h-5 bg-gray-200 rounded-full peer-checked:bg-emerald-500 transition-colors" />
-              <div className="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-4" />
+        {/* Result section */}
+        <div className="border-t border-gray-200 pt-5 space-y-5">
+          {/* Result selection */}
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-3">Inspection Result *</label>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <label className="flex items-center gap-3 p-4 bg-white border border-gray-200 rounded-lg cursor-pointer hover:border-green-500/50 has-[:checked]:border-green-500 has-[:checked]:bg-green-500/10 flex-1 min-h-[44px] transition-colors">
+                <input
+                  type="radio"
+                  name="instant_result"
+                  value="pass"
+                  className="text-green-500"
+                  checked={result === 'pass'}
+                  onChange={() => setResult('pass')}
+                />
+                <div><p className="text-sm font-medium text-gray-900">PASS</p><p className="text-xs text-gray-400">Vehicle meets all requirements</p></div>
+              </label>
+              <label className="flex items-center gap-3 p-4 bg-white border border-gray-200 rounded-lg cursor-pointer hover:border-red-500/50 has-[:checked]:border-red-500 has-[:checked]:bg-red-500/10 flex-1 min-h-[44px] transition-colors">
+                <input
+                  type="radio"
+                  name="instant_result"
+                  value="fail"
+                  className="text-red-500"
+                  checked={result === 'fail'}
+                  onChange={() => setResult('fail')}
+                />
+                <div><p className="text-sm font-medium text-gray-900">FAIL</p><p className="text-xs text-gray-400">Vehicle does not meet requirements</p></div>
+              </label>
             </div>
+          </div>
+
+          {/* Structured failure reasons */}
+          {result === 'fail' && (
             <div>
-              <span className="text-sm font-medium text-gray-700">Record result now</span>
-              <p className="text-xs text-gray-400">Skip scheduling — record Pass/Fail immediately</p>
-            </div>
-          </label>
-        </div>
-
-        {/* Instant result section */}
-        {recordNow && (
-          <div className="space-y-5 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-            {/* Result selection */}
-            <div>
-              <label className="block text-sm font-medium text-gray-600 mb-3">Inspection Result *</label>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <label className="flex items-center gap-3 p-4 bg-white border border-gray-200 rounded-lg cursor-pointer hover:border-green-500/50 has-[:checked]:border-green-500 has-[:checked]:bg-green-500/10 flex-1 min-h-[44px] transition-colors">
-                  <input
-                    type="radio"
-                    name="instant_result"
-                    value="pass"
-                    className="text-green-500"
-                    checked={result === 'pass'}
-                    onChange={() => setResult('pass')}
-                  />
-                  <div><p className="text-sm font-medium text-gray-900">PASS</p><p className="text-xs text-gray-400">Vehicle meets all requirements</p></div>
-                </label>
-                <label className="flex items-center gap-3 p-4 bg-white border border-gray-200 rounded-lg cursor-pointer hover:border-red-500/50 has-[:checked]:border-red-500 has-[:checked]:bg-red-500/10 flex-1 min-h-[44px] transition-colors">
-                  <input
-                    type="radio"
-                    name="instant_result"
-                    value="fail"
-                    className="text-red-500"
-                    checked={result === 'fail'}
-                    onChange={() => setResult('fail')}
-                  />
-                  <div><p className="text-sm font-medium text-gray-900">FAIL</p><p className="text-xs text-gray-400">Vehicle does not meet requirements</p></div>
-                </label>
-              </div>
-            </div>
-
-            {/* Structured failure reasons */}
-            {result === 'fail' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-2">Failure Reasons *</label>
-                <p className="text-xs text-gray-400 mb-3">Select all that apply</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {failureReasons.map(fr => (
-                    <label
-                      key={fr.id}
-                      className={`flex items-center gap-2.5 p-2.5 rounded-lg border cursor-pointer transition-colors text-sm ${
-                        selectedReasons.has(fr.name)
-                          ? 'border-red-300 bg-red-50 text-gray-900'
-                          : 'border-gray-200 hover:border-gray-300 text-gray-600'
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedReasons.has(fr.name)}
-                        onChange={() => toggleReason(fr.name)}
-                        className="rounded text-red-500 shrink-0"
-                      />
-                      {fr.name}
-                    </label>
-                  ))}
-                  {/* Other option */}
+              <label className="block text-sm font-medium text-gray-600 mb-2">Failure Reasons *</label>
+              <p className="text-xs text-gray-400 mb-3">Select all that apply</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {failureReasons.map(fr => (
                   <label
+                    key={fr.id}
                     className={`flex items-center gap-2.5 p-2.5 rounded-lg border cursor-pointer transition-colors text-sm ${
-                      otherChecked
+                      selectedReasons.has(fr.name)
                         ? 'border-red-300 bg-red-50 text-gray-900'
                         : 'border-gray-200 hover:border-gray-300 text-gray-600'
                     }`}
                   >
                     <input
                       type="checkbox"
-                      checked={otherChecked}
-                      onChange={() => setOtherChecked(!otherChecked)}
+                      checked={selectedReasons.has(fr.name)}
+                      onChange={() => toggleReason(fr.name)}
                       className="rounded text-red-500 shrink-0"
                     />
-                    Other
+                    {fr.name}
                   </label>
-                </div>
-                {otherChecked && (
+                ))}
+                {/* Other option */}
+                <label
+                  className={`flex items-center gap-2.5 p-2.5 rounded-lg border cursor-pointer transition-colors text-sm ${
+                    otherChecked
+                      ? 'border-red-300 bg-red-50 text-gray-900'
+                      : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                  }`}
+                >
                   <input
-                    type="text"
-                    value={otherText}
-                    onChange={(e) => setOtherText(e.target.value)}
-                    placeholder="Describe the other reason..."
-                    className="glass-input mt-2 text-sm"
+                    type="checkbox"
+                    checked={otherChecked}
+                    onChange={() => setOtherChecked(!otherChecked)}
+                    className="rounded text-red-500 shrink-0"
                   />
-                )}
+                  Other
+                </label>
               </div>
-            )}
-          </div>
-        )}
+              {otherChecked && (
+                <input
+                  type="text"
+                  value={otherText}
+                  onChange={(e) => setOtherText(e.target.value)}
+                  placeholder="Describe the other reason..."
+                  className="glass-input mt-2 text-sm"
+                />
+              )}
+            </div>
+          )}
+        </div>
 
         {error && <div className="p-3 bg-red-50 border border-red-200 rounded-lg"><p className="text-sm text-red-600">{error}</p></div>}
         <div className="flex flex-col sm:flex-row gap-3 pt-2">
           <button type="submit" disabled={loading} className="btn-primary">
-            {loading ? 'Creating...' : recordNow ? 'Create & Submit Result' : 'Create Inspection'}
+            {loading ? 'Submitting...' : 'Submit Inspection'}
           </button>
           <button type="button" onClick={() => router.back()} className="btn-secondary">Cancel</button>
         </div>

@@ -6,7 +6,7 @@ export type VehicleStatus = 'verified' | 'inspection_overdue' | 'updated_inspect
 export type AssignmentStatus = 'assigned' | 'rescheduled' | 'done' | 'delayed'
 export type NotificationType = 'assignment_new' | 'assignment_rescheduled' | 'assignment_delayed' | 'assignment_done' | 'general'
 export type EquipmentCategory = 'vehicle' | 'heavy_equipment'
-export type InspectionType = 'routine' | 'follow_up' | 're_inspection'
+export type InspectionType = 'new' | 'follow_up' | 're_inspection'
 
 export interface UserProfile {
   id: string
