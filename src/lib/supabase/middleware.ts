@@ -45,7 +45,7 @@ export async function updateSession(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     // Public routes that don't require auth
-    const publicRoutes = ['/login', '/auth/callback', '/setup']
+    const publicRoutes = ['/login', '/auth/callback', '/setup', '/api/auth']
     const isPublicRoute = publicRoutes.some(route => request.nextUrl.pathname.startsWith(route))
 
     if (!user && !isPublicRoute) {
@@ -107,8 +107,8 @@ export async function updateSession(request: NextRequest) {
     // Deny by default — never allow through on auth failure
     console.error('[Middleware] Auth check failed:', error instanceof Error ? error.message : error)
 
-    const publicRoutes = ['/login', '/auth/callback', '/setup']
-    const isPublicRoute = publicRoutes.some(route => request.nextUrl.pathname.startsWith(route))
+    const publicFallback = ['/login', '/auth/callback', '/setup', '/api/auth']
+    const isPublicRoute = publicFallback.some(route => request.nextUrl.pathname.startsWith(route))
 
     if (isPublicRoute) {
       return supabaseResponse
