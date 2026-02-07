@@ -23,23 +23,45 @@ export async function GET() {
       .eq('id', user.id)
       .single()
 
-    const { count: vehicleCount, error: vehicleError } = await supabase
+    // Try count
+    const vehicleCountRes = await supabase
       .from('vehicles_equipment')
       .select('*', { count: 'exact', head: true })
 
-    const { count: companyCount, error: companyError } = await supabase
+    // Try fetching 3 rows
+    const vehicleSampleRes = await supabase
+      .from('vehicles_equipment')
+      .select('id, plate_number, status')
+      .limit(3)
+
+    // Try fetching with no RLS columns
+    const vehicleIdRes = await supabase
+      .from('vehicles_equipment')
+      .select('id')
+      .limit(1)
+
+    const { count: companyCount } = await supabase
       .from('companies')
+      .select('*', { count: 'exact', head: true })
+
+    const { count: equipCount } = await supabase
+      .from('equipment_types')
       .select('*', { count: 'exact', head: true })
 
     return NextResponse.json({
       user: { id: user.id, email: user.email },
       profile,
       profileError: profileError?.message || null,
-      vehicleCount,
-      vehicleError: vehicleError?.message || null,
+      vehicleCount: vehicleCountRes.count,
+      vehicleCountError: vehicleCountRes.error,
+      vehicleCountStatus: vehicleCountRes.status,
+      vehicleCountStatusText: vehicleCountRes.statusText,
+      vehicleSample: vehicleSampleRes.data,
+      vehicleSampleError: vehicleSampleRes.error,
+      vehicleIdSample: vehicleIdRes.data,
+      vehicleIdError: vehicleIdRes.error,
       companyCount,
-      companyError: companyError?.message || null,
-      envUrl: process.env.NEXT_PUBLIC_SUPABASE_URL?.slice(0, 30) + '...',
+      equipCount,
     })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
