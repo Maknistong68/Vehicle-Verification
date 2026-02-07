@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { UserRole, VehicleStatus } from '@/lib/types'
 import { maskName, isMinimalDataRole } from '@/lib/masking'
 
@@ -105,6 +105,7 @@ function StatusIcon({ type, className }: { type: string; className?: string }) {
 export function LookupClient({ vehicles, role, hasNoCompany }: Props) {
   const [query, setQuery] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [searchedAt, setSearchedAt] = useState<Date | null>(null)
 
   const minimal = isMinimalDataRole(role)
 
@@ -119,20 +120,44 @@ export function LookupClient({ vehicles, role, hasNoCompany }: Props) {
     )
   }, [query, vehicles, role, minimal])
 
+  const autoSelectedVehicle = filtered.length === 1 ? filtered[0] : null
+  const prevAutoIdRef = useRef<string | null>(null)
+
+  // Capture timestamp when auto-selecting a single result
+  useEffect(() => {
+    if (autoSelectedVehicle && !selectedId && prevAutoIdRef.current !== autoSelectedVehicle.id) {
+      prevAutoIdRef.current = autoSelectedVehicle.id
+      setSearchedAt(new Date())
+    } else if (!autoSelectedVehicle && !selectedId) {
+      prevAutoIdRef.current = null
+    }
+  }, [autoSelectedVehicle, selectedId])
+
   const selectedVehicle = selectedId
     ? vehicles.find(v => v.id === selectedId) || null
-    : filtered.length === 1
-      ? filtered[0]
-      : null
+    : autoSelectedVehicle
 
   const handleSelect = (id: string) => {
     setSelectedId(id)
+    setSearchedAt(new Date())
   }
 
   const handleClear = () => {
     setQuery('')
     setSelectedId(null)
+    setSearchedAt(null)
   }
+
+  const formatTimestamp = useCallback((date: Date) => {
+    return date.toLocaleString('en-US', {
+      month: 'short', day: 'numeric', year: 'numeric',
+      hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true,
+    })
+  }, [])
+
+  const watermarkText = searchedAt
+    ? `VVS1 \u2022 ${searchedAt.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}`
+    : ''
 
   // Determine the effective status (blacklisted overrides)
   const effectiveStatus: VehicleStatus | null = selectedVehicle
@@ -238,48 +263,84 @@ export function LookupClient({ vehicles, role, hasNoCompany }: Props) {
       {/* Big Status Sticker */}
       {selectedVehicle && config && effectiveStatus && (
         <div className="animate-fade-in">
-          {/* Sticker card */}
-          <div className={`${config.bg} border-2 ${config.border} rounded-2xl p-8 text-center mb-4`}>
-            <div className={`${config.text} flex justify-center mb-4`}>
-              <StatusIcon type={config.icon} />
+          {/* Timestamp banner */}
+          {searchedAt && (
+            <div className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-center mb-3">
+              Searched on: {formatTimestamp(searchedAt)}
             </div>
-            <h2 className={`text-3xl font-bold ${config.text} mb-2`}>
-              {config.label}
-            </h2>
-            <p className="text-sm text-gray-600 max-w-md mx-auto">
-              {config.description}
-            </p>
-          </div>
+          )}
 
-          {/* Vehicle details sub-card */}
-          <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-3">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wider">Plate Number</p>
-                <p className="text-lg font-bold text-gray-900">{selectedVehicle.plate_number}</p>
+          {/* Watermark container */}
+          <div className="relative overflow-hidden rounded-2xl">
+            {/* Sticker card */}
+            <div className={`${config.bg} border-2 ${config.border} rounded-2xl p-8 text-center mb-4`}>
+              <div className={`${config.text} flex justify-center mb-4`}>
+                <StatusIcon type={config.icon} />
               </div>
-              <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wider">Company</p>
-                <p className="text-sm font-medium text-gray-900">{selectedVehicle.company?.name || '—'}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wider">Equipment Type</p>
-                <p className="text-sm font-medium text-gray-900">{selectedVehicle.equipment_type?.name || '—'}</p>
-              </div>
-              {!isMinimalDataRole(role) && (
+              <h2 className={`text-3xl font-bold ${config.text} mb-2`}>
+                {config.label}
+              </h2>
+              <p className="text-sm text-gray-600 max-w-md mx-auto">
+                {config.description}
+              </p>
+            </div>
+
+            {/* Vehicle details sub-card */}
+            <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-3">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-xs text-gray-400 uppercase tracking-wider">Driver</p>
-                  <p className="text-sm font-medium text-gray-900">{maskName(selectedVehicle.driver_name, role)}</p>
+                  <p className="text-xs text-gray-400 uppercase tracking-wider">Plate Number</p>
+                  <p className="text-lg font-bold text-gray-900">{selectedVehicle.plate_number}</p>
                 </div>
-              )}
+                <div>
+                  <p className="text-xs text-gray-400 uppercase tracking-wider">Company</p>
+                  <p className="text-sm font-medium text-gray-900">{selectedVehicle.company?.name || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 uppercase tracking-wider">Equipment Type</p>
+                  <p className="text-sm font-medium text-gray-900">{selectedVehicle.equipment_type?.name || '—'}</p>
+                </div>
+                {!isMinimalDataRole(role) && (
+                  <div>
+                    <p className="text-xs text-gray-400 uppercase tracking-wider">Driver</p>
+                    <p className="text-sm font-medium text-gray-900">{maskName(selectedVehicle.driver_name, role)}</p>
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={handleClear}
+                className="w-full mt-2 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+              >
+                Search again
+              </button>
             </div>
 
-            <button
-              onClick={handleClear}
-              className="w-full mt-2 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-            >
-              Search again
-            </button>
+            {/* Diagonal watermark overlay */}
+            {watermarkText && (
+              <div
+                className="absolute inset-0 pointer-events-none select-none overflow-hidden"
+                aria-hidden="true"
+              >
+                <div
+                  className="absolute -inset-[50%] flex flex-col items-center justify-center gap-10"
+                  style={{ transform: 'rotate(-30deg)' }}
+                >
+                  {Array.from({ length: 12 }).map((_, row) => (
+                    <div key={row} className="flex gap-16 whitespace-nowrap">
+                      {Array.from({ length: 6 }).map((_, col) => (
+                        <span
+                          key={col}
+                          className="text-sm font-semibold text-gray-400/25"
+                        >
+                          {watermarkText}
+                        </span>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
