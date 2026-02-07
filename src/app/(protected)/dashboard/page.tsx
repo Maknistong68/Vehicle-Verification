@@ -80,6 +80,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     return query
   }
 
+  // Compute the date 30 days from now for "expiring soon" query
+  const in30Days = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+  const nowISO = new Date().toISOString()
+
   const results = await Promise.all([
     q(),
     q(b => b.eq('result', 'pass')),
@@ -88,6 +92,14 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     q(b => b.eq('status', 'scheduled')),
     q(b => b.eq('status', 'completed')),
     supabase.from('vehicles_equipment').select('*', { count: 'exact', head: true }),
+    // Overdue: status is inspection_overdue OR (verified with past next_inspection_date)
+    supabase.from('vehicles_equipment').select('*', { count: 'exact', head: true })
+      .eq('status', 'inspection_overdue'),
+    // Expiring soon: verified vehicles with next_inspection_date within 30 days
+    supabase.from('vehicles_equipment').select('*', { count: 'exact', head: true })
+      .eq('status', 'verified')
+      .gte('next_inspection_date', nowISO)
+      .lte('next_inspection_date', in30Days),
   ])
 
   const totalInspections = results[0].count ?? 0
@@ -97,6 +109,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const scheduledCount = results[4].count ?? 0
   const completedCount = results[5].count ?? 0
   const totalVehicles = results[6].count ?? 0
+  const overdueCount = results[7].count ?? 0
+  const expiringSoonCount = results[8].count ?? 0
 
   let recentQuery = supabase
     .from('inspections')
@@ -176,13 +190,15 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       </div>
 
       {/* ── Overview Stats ─────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
         <StatCard label="Total Inspections" value={totalInspections} icon="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" color="blue" />
         <StatCard label="Passed" value={passCount} icon="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" color="green" subtitle={totalInspections ? `${Math.round((passCount / totalInspections) * 100)}% pass rate` : undefined} emptyMessage="No passes yet" />
         <StatCard label="Failed" value={failCount} icon="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" color="red" emptyMessage="No failures" />
         <StatCard label="Pending" value={pendingCount + scheduledCount} icon="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" color="yellow" emptyMessage="All caught up" />
         <StatCard label="Completed" value={completedCount} icon="M5 13l4 4L19 7" color="purple" />
         <StatCard label="Vehicles/Equipment" value={totalVehicles} icon="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" color="cyan" />
+        <StatCard label="Overdue" value={overdueCount} icon="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" color="red" emptyMessage="No overdue vehicles" />
+        <StatCard label="Expiring Soon" value={expiringSoonCount} icon="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" color="yellow" subtitle={expiringSoonCount ? 'Within 30 days' : undefined} emptyMessage="None expiring soon" />
       </div>
 
       {/* ── Activity Section ───────────────────────────────── */}

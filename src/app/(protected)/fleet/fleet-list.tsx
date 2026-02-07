@@ -46,6 +46,22 @@ function formatCompactDate(dateStr: string | null): string {
   return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
+function getExpiryInfo(dateStr: string | null): { label: string; color: 'red' | 'amber' | null } | null {
+  if (!dateStr) return null
+  const now = new Date()
+  const target = new Date(dateStr)
+  const diffMs = target.getTime() - now.getTime()
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+
+  if (diffDays < 0) {
+    return { label: `${Math.abs(diffDays)}d overdue`, color: 'red' }
+  }
+  if (diffDays <= 30) {
+    return { label: `${diffDays}d left`, color: 'amber' }
+  }
+  return null
+}
+
 interface Props {
   vehicles: Vehicle[]
   inspections: InspectionRow[]
@@ -120,6 +136,13 @@ export function FleetList({ vehicles, inspections, companies, equipmentTypes, to
   // that can't easily be filtered server-side on joined tables
   const filtered = useMemo(() => {
     return vehicles.filter(v => {
+      // Handle 'expiring_soon' virtual filter (within 30 days)
+      if (filters.vehicleStatus === 'expiring_soon') {
+        if (!v.next_inspection_date) return false
+        const diffMs = new Date(v.next_inspection_date).getTime() - Date.now()
+        const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+        if (diffDays < 0 || diffDays > 30) return false
+      }
       if (filters.company && v.company?.name !== filters.company) return false
       if (filters.equipmentType && v.equipment_type?.name !== filters.equipmentType) return false
       if (filters.category && v.equipment_type?.category !== filters.category) return false
@@ -237,8 +260,19 @@ export function FleetList({ vehicles, inspections, companies, equipmentTypes, to
                       <td className="p-4">
                         <StatusBadge label={v.status.replace(/_/g, ' ')} variant={getVehicleStatusVariant(v.status)} />
                       </td>
-                      <td className="p-4 text-sm text-gray-500">
-                        {v.next_inspection_date ? new Date(v.next_inspection_date).toLocaleDateString() : '\u2014'}
+                      <td className="p-4">
+                        <span className="text-sm text-gray-500">
+                          {v.next_inspection_date ? new Date(v.next_inspection_date).toLocaleDateString() : '\u2014'}
+                        </span>
+                        {(() => {
+                          const expiry = getExpiryInfo(v.next_inspection_date)
+                          if (!expiry) return null
+                          return (
+                            <span className={`ml-1.5 text-xs font-medium ${expiry.color === 'red' ? 'text-red-600' : 'text-amber-600'}`}>
+                              {expiry.label}
+                            </span>
+                          )
+                        })()}
                       </td>
                       <td className="p-4">
                         {latestResult ? (
@@ -321,6 +355,15 @@ export function FleetList({ vehicles, inspections, companies, equipmentTypes, to
                       <span className="truncate mr-2">{truncateCompanyName(v.company?.name)}</span>
                       <div className="flex items-center gap-2 shrink-0">
                         <span className="text-gray-500">{formatCompactDate(v.next_inspection_date)}</span>
+                        {(() => {
+                          const expiry = getExpiryInfo(v.next_inspection_date)
+                          if (!expiry) return null
+                          return (
+                            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${expiry.color === 'red' ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600'}`}>
+                              {expiry.label}
+                            </span>
+                          )
+                        })()}
                         <svg
                           className={`w-4 h-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
                           fill="none" viewBox="0 0 24 24" stroke="currentColor"

@@ -791,6 +791,45 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 
+-- 8.8 Inspection result sync (updates vehicle status on pass/fail)
+CREATE OR REPLACE FUNCTION handle_inspection_result_sync()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NEW.status = 'completed' AND (TG_OP = 'INSERT' OR OLD.status IS DISTINCT FROM 'completed') THEN
+    IF NEW.result = 'pass' THEN
+      UPDATE vehicles_equipment
+      SET status = 'verified', next_inspection_date = NOW() + INTERVAL '1 year'
+      WHERE id = NEW.vehicle_equipment_id AND status != 'blacklisted';
+    ELSIF NEW.result = 'fail' THEN
+      UPDATE vehicles_equipment
+      SET status = 'rejected'
+      WHERE id = NEW.vehicle_equipment_id AND status != 'blacklisted';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+-- 8.9 Mark overdue vehicles (reusable, callable manually or by pg_cron)
+CREATE OR REPLACE FUNCTION mark_overdue_vehicles()
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  UPDATE vehicles_equipment
+  SET status = 'inspection_overdue'
+  WHERE next_inspection_date < NOW()
+    AND status = 'verified';
+END;
+$$;
+
+
 -- ============================================================================
 -- 9. TRIGGERS
 -- ============================================================================
@@ -855,6 +894,11 @@ CREATE TRIGGER trg_enforce_assignment_status
 CREATE TRIGGER trg_enforce_inspection_values
   BEFORE INSERT OR UPDATE ON inspections
   FOR EACH ROW EXECUTE FUNCTION enforce_inspection_result_values();
+
+-- Inspection result → vehicle status sync
+CREATE TRIGGER trg_inspection_result_sync
+  AFTER INSERT OR UPDATE ON inspections
+  FOR EACH ROW EXECUTE FUNCTION handle_inspection_result_sync();
 
 
 -- ============================================================================

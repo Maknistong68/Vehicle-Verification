@@ -29,7 +29,11 @@ export default async function FleetPage({ searchParams }: { searchParams: Promis
 
   // Whitelist valid status values to prevent filter injection
   const VALID_STATUSES = ['verified', 'updated_inspection_required', 'inspection_overdue', 'rejected', 'blacklisted']
-  const filterStatus = VALID_STATUSES.includes(params.status || '') ? params.status! : ''
+  // 'expiring_soon' is a virtual filter handled client-side, not a DB status
+  const VIRTUAL_STATUSES = ['expiring_soon']
+  const rawStatus = params.status || ''
+  const isVirtualFilter = VIRTUAL_STATUSES.includes(rawStatus)
+  const filterStatus = VALID_STATUSES.includes(rawStatus) ? rawStatus : ''
   const from = (currentPage - 1) * PAGE_SIZE
   const to = from + PAGE_SIZE - 1
 
@@ -83,11 +87,25 @@ export default async function FleetPage({ searchParams }: { searchParams: Promis
     .order('created_at', { ascending: false })
     .range(from, to)
 
-  const { data: vehicles } = await dataQuery
+  const { data: vehiclesRaw } = await dataQuery
+
+  // Safety net: compute overdue for vehicles whose next_inspection_date has passed
+  // but DB status hasn't been updated yet (between cron runs)
+  const now = new Date()
+  const vehicles = (vehiclesRaw || []).map((v: any) => {
+    if (
+      v.status === 'verified' &&
+      v.next_inspection_date &&
+      new Date(v.next_inspection_date) < now
+    ) {
+      return { ...v, status: 'inspection_overdue' }
+    }
+    return v
+  })
 
   // Client-side post-filter for joined fields (company name, equipment_type name/category)
   // These can't be easily filtered with Supabase .or() on joined tables
-  let filteredVehicles = vehicles || []
+  let filteredVehicles = vehicles
   if (searchQuery && filteredVehicles.length === 0 && !filterStatus) {
     // If server-side text search returned 0 results, also search by company/equipment (requires fetching all)
     const { data: allVehicles } = await supabase
@@ -174,7 +192,7 @@ export default async function FleetPage({ searchParams }: { searchParams: Promis
         pageSize={PAGE_SIZE}
         serverSearch={searchQuery}
         serverFilters={{
-          vehicleStatus: filterStatus,
+          vehicleStatus: isVirtualFilter ? rawStatus : filterStatus,
           company: filterCompany,
           equipmentType: filterEquipmentType,
           category: filterCategory,

@@ -28,6 +28,7 @@ interface Props {
 const vehicleStatuses = [
   { value: 'verified', label: 'Verified' },
   { value: 'inspection_overdue', label: 'Inspection Overdue' },
+  { value: 'expiring_soon', label: 'Expiring Soon (30d)' },
   { value: 'updated_inspection_required', label: 'Update Required' },
   { value: 'rejected', label: 'Rejected' },
   { value: 'blacklisted', label: 'Blacklisted' },
