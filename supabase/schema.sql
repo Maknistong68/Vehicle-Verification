@@ -218,6 +218,39 @@ AS $$
   LIMIT 1;
 $$;
 
+-- Helper to get user's company_id (avoids RLS recursion in policies)
+CREATE OR REPLACE FUNCTION get_user_company_id()
+RETURNS uuid
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT company_id FROM user_profiles WHERE id = auth.uid() LIMIT 1;
+$$;
+
+-- Helper to get vehicle IDs assigned to current inspector (avoids RLS recursion)
+CREATE OR REPLACE FUNCTION get_inspector_vehicle_ids()
+RETURNS SETOF uuid
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT vehicle_equipment_id FROM inspections WHERE assigned_inspector_id = auth.uid();
+$$;
+
+-- Helper to get vehicle IDs for current user's company (avoids RLS recursion)
+CREATE OR REPLACE FUNCTION get_company_vehicle_ids()
+RETURNS SETOF uuid
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT id FROM vehicles_equipment WHERE company_id = get_user_company_id();
+$$;
+
 CREATE OR REPLACE FUNCTION log_audit_event(
   p_action TEXT,
   p_table_name TEXT,
@@ -400,10 +433,7 @@ CREATE POLICY "vehicles_equipment_inspector_select"
   ON vehicles_equipment FOR SELECT TO authenticated
   USING (
     get_user_role() = 'inspector'
-    AND id IN (
-      SELECT vehicle_equipment_id FROM inspections
-      WHERE assigned_inspector_id = auth.uid()
-    )
+    AND id IN (SELECT get_inspector_vehicle_ids())
   );
 
 CREATE POLICY "vehicles_equipment_inspector_insert"
@@ -414,14 +444,14 @@ CREATE POLICY "vehicles_equipment_contractor_select"
   ON vehicles_equipment FOR SELECT TO authenticated
   USING (
     get_user_role() = 'contractor'
-    AND company_id = (SELECT company_id FROM user_profiles WHERE id = auth.uid())
+    AND company_id = get_user_company_id()
   );
 
 CREATE POLICY "vehicles_equipment_verifier_select"
   ON vehicles_equipment FOR SELECT TO authenticated
   USING (
     get_user_role() = 'verifier'
-    AND company_id = (SELECT company_id FROM user_profiles WHERE id = auth.uid())
+    AND company_id = get_user_company_id()
   );
 
 
@@ -453,37 +483,25 @@ CREATE POLICY "inspections_contractor_select"
   ON inspections FOR SELECT TO authenticated
   USING (
     get_user_role() = 'contractor'
-    AND vehicle_equipment_id IN (
-      SELECT id FROM vehicles_equipment
-      WHERE company_id = (SELECT company_id FROM user_profiles WHERE id = auth.uid())
-    )
+    AND vehicle_equipment_id IN (SELECT get_company_vehicle_ids())
   );
 
 CREATE POLICY "inspections_verifier_select"
   ON inspections FOR SELECT TO authenticated
   USING (
     get_user_role() = 'verifier'
-    AND vehicle_equipment_id IN (
-      SELECT id FROM vehicles_equipment
-      WHERE company_id = (SELECT company_id FROM user_profiles WHERE id = auth.uid())
-    )
+    AND vehicle_equipment_id IN (SELECT get_company_vehicle_ids())
   );
 
 CREATE POLICY "inspections_verifier_update"
   ON inspections FOR UPDATE TO authenticated
   USING (
     get_user_role() = 'verifier'
-    AND vehicle_equipment_id IN (
-      SELECT id FROM vehicles_equipment
-      WHERE company_id = (SELECT company_id FROM user_profiles WHERE id = auth.uid())
-    )
+    AND vehicle_equipment_id IN (SELECT get_company_vehicle_ids())
   )
   WITH CHECK (
     get_user_role() = 'verifier'
-    AND vehicle_equipment_id IN (
-      SELECT id FROM vehicles_equipment
-      WHERE company_id = (SELECT company_id FROM user_profiles WHERE id = auth.uid())
-    )
+    AND vehicle_equipment_id IN (SELECT get_company_vehicle_ids())
   );
 
 
@@ -516,9 +534,8 @@ CREATE POLICY "checklist_contractor_select"
   USING (
     get_user_role() = 'contractor'
     AND inspection_id IN (
-      SELECT i.id FROM inspections i
-      JOIN vehicles_equipment v ON i.vehicle_equipment_id = v.id
-      WHERE v.company_id = (SELECT company_id FROM user_profiles WHERE id = auth.uid())
+      SELECT id FROM inspections
+      WHERE vehicle_equipment_id IN (SELECT get_company_vehicle_ids())
     )
   );
 
@@ -527,9 +544,8 @@ CREATE POLICY "checklist_verifier_select"
   USING (
     get_user_role() = 'verifier'
     AND inspection_id IN (
-      SELECT i.id FROM inspections i
-      JOIN vehicles_equipment v ON i.vehicle_equipment_id = v.id
-      WHERE v.company_id = (SELECT company_id FROM user_profiles WHERE id = auth.uid())
+      SELECT id FROM inspections
+      WHERE vehicle_equipment_id IN (SELECT get_company_vehicle_ids())
     )
   );
 
@@ -558,14 +574,14 @@ CREATE POLICY "assignments_contractor_select"
   ON assignments FOR SELECT TO authenticated
   USING (
     get_user_role() = 'contractor'
-    AND company_id = (SELECT company_id FROM user_profiles WHERE id = auth.uid())
+    AND company_id = get_user_company_id()
   );
 
 CREATE POLICY "assignments_verifier_select"
   ON assignments FOR SELECT TO authenticated
   USING (
     get_user_role() = 'verifier'
-    AND company_id = (SELECT company_id FROM user_profiles WHERE id = auth.uid())
+    AND company_id = get_user_company_id()
   );
 
 
