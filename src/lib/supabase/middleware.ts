@@ -62,15 +62,19 @@ export async function updateSession(request: NextRequest) {
 
     // Lock /setup if any owner account already exists
     if (request.nextUrl.pathname.startsWith('/setup')) {
-      const { count } = await supabase
-        .from('user_profiles')
-        .select('*', { count: 'exact', head: true })
-        .eq('role', 'owner')
+      try {
+        const { count } = await supabase
+          .from('user_profiles')
+          .select('*', { count: 'exact', head: true })
+          .eq('role', 'owner')
 
-      if (count && count > 0) {
-        const url = request.nextUrl.clone()
-        url.pathname = '/login'
-        return NextResponse.redirect(url)
+        if (count && count > 0) {
+          const url = request.nextUrl.clone()
+          url.pathname = '/login'
+          return NextResponse.redirect(url)
+        }
+      } catch {
+        // Table may not exist yet — allow setup through
       }
     }
 
