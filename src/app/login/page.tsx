@@ -2,6 +2,7 @@
 
 import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 
 function LoginForm() {
   const [email, setEmail] = useState('')
@@ -17,22 +18,36 @@ function LoginForm() {
     setLoading(true)
     setError(null)
 
-    // Use rate-limited server endpoint instead of direct Supabase auth
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
+    // Rate-limit check first
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      })
+      if (res.status === 429) {
+        const data = await res.json()
+        setError(data.error || 'Too many attempts. Please try again later.')
+        setLoading(false)
+        return
+      }
+    } catch {
+      // Rate-limit check failed — proceed with auth anyway
+    }
+
+    // Auth via Supabase browser client (handles cookies automatically)
+    const supabase = createClient()
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
     })
 
-    const data = await res.json()
-
-    if (!res.ok) {
-      setError(data.error || 'Login failed')
+    if (authError) {
+      setError('Invalid email or password')
       setLoading(false)
       return
     }
 
-    // Session cookie was set server-side; refresh to pick it up
     router.push('/dashboard')
     router.refresh()
   }
