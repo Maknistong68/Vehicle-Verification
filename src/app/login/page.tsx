@@ -2,6 +2,7 @@
 
 import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
 function LoginForm() {
@@ -101,6 +102,11 @@ function LoginForm() {
             className="glass-input"
             placeholder="••••••••"
           />
+          <div className="mt-1.5 text-right">
+            <Link href="/forgot-password" className="text-sm text-emerald-600 hover:text-emerald-500 font-medium">
+              Forgot Password?
+            </Link>
+          </div>
         </div>
 
         {error && (

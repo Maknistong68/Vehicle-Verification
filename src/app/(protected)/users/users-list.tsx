@@ -8,6 +8,7 @@ import { useSortable } from '@/hooks/use-sortable'
 import { StatusBadge } from '@/components/status-badge'
 import { maskName } from '@/lib/masking'
 import { Pagination } from '@/components/pagination'
+import { ResetPasswordButton } from './reset-password-button'
 import Link from 'next/link'
 
 interface UserRow {
@@ -68,7 +69,7 @@ export function UsersList({ users, totalCount, currentPage, pageSize }: Props) {
                 <SortHeader label="Role" sortKey="role" activeSortKey={sortKey} activeSortDir={sortDir} onSort={onSort} />
                 <SortHeader label="Status" sortKey="is_active" activeSortKey={sortKey} activeSortDir={sortDir} onSort={onSort} />
                 <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Created</th>
-                {role === 'owner' && (
+                {['owner', 'admin'].includes(role) && (
                   <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Actions</th>
                 )}
               </tr>
@@ -101,14 +102,19 @@ export function UsersList({ users, totalCount, currentPage, pageSize }: Props) {
                   <td className="p-4 text-sm text-gray-500">
                     {new Date(u.created_at).toLocaleDateString()}
                   </td>
-                  {role === 'owner' && (
+                  {['owner', 'admin'].includes(role) && (
                     <td className="p-4">
-                      <Link
-                        href={"/users/" + u.id + "/edit"}
-                        className="text-sm text-emerald-600 hover:text-emerald-500 font-medium"
-                      >
-                        Edit Role
-                      </Link>
+                      <div className="flex items-center gap-3">
+                        {role === 'owner' && (
+                          <Link
+                            href={"/users/" + u.id + "/edit"}
+                            className="text-sm text-emerald-600 hover:text-emerald-500 font-medium"
+                          >
+                            Edit Role
+                          </Link>
+                        )}
+                        <ResetPasswordButton email={u.email} />
+                      </div>
                     </td>
                   )}
                 </tr>
@@ -148,13 +154,18 @@ export function UsersList({ users, totalCount, currentPage, pageSize }: Props) {
                   <span className={`text-xs ${u.is_active ? 'text-green-600' : 'text-red-500'}`}>
                     {u.is_active ? 'Active' : 'Inactive'}
                   </span>
-                  {role === 'owner' && (
-                    <Link
-                      href={"/users/" + u.id + "/edit"}
-                      className="text-xs text-emerald-600 font-medium"
-                    >
-                      Edit Role
-                    </Link>
+                  {['owner', 'admin'].includes(role) && (
+                    <div className="flex items-center gap-3">
+                      {role === 'owner' && (
+                        <Link
+                          href={"/users/" + u.id + "/edit"}
+                          className="text-xs text-emerald-600 font-medium"
+                        >
+                          Edit Role
+                        </Link>
+                      )}
+                      <ResetPasswordButton email={u.email} />
+                    </div>
                   )}
                 </div>
               </div>
