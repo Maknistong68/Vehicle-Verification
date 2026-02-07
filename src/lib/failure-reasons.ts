@@ -1,0 +1,15 @@
+export const FAILURE_REASONS = [
+  'Expired TUV/Certification',
+  'Brakes',
+  'Lights & Signals',
+  'Tires & Wheels',
+  'Steering',
+  'Oil Leak',
+  'Engine Issues',
+  'Body Damage',
+  'Safety Equipment Missing',
+  'Electrical Issues',
+  'Exhaust & Emissions',
+  'Seatbelts',
+  'Documentation Issues',
+] as const

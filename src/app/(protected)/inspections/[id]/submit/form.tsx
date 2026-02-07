@@ -5,22 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { EditableChecklist, ChecklistItem } from '@/components/inspection-checklist'
 import { sanitizeText } from '@/lib/sanitize'
-
-const FAILURE_REASONS = [
-  'Expired TUV/Certification',
-  'Brakes',
-  'Lights & Signals',
-  'Tires & Wheels',
-  'Steering',
-  'Oil Leak',
-  'Engine Issues',
-  'Body Damage',
-  'Safety Equipment Missing',
-  'Electrical Issues',
-  'Exhaust & Emissions',
-  'Seatbelts',
-  'Documentation Issues',
-] as const
+import { FAILURE_REASONS } from '@/lib/failure-reasons'
 
 export function SubmitResultForm({ inspectionId }: { inspectionId: string }) {
   const [loading, setLoading] = useState(false)
@@ -85,7 +70,7 @@ export function SubmitResultForm({ inspectionId }: { inspectionId: string }) {
       completed_at: new Date().toISOString(),
     }).eq('id', inspectionId)
 
-    if (updateError) { setError(updateError.message); setLoading(false); return }
+    if (updateError) { console.error('[Inspection] Submit failed:', updateError.message); setError('Failed to submit inspection. Please try again.'); setLoading(false); return }
 
     // Save checklist items
     const checkedItems = checklistRef.current.filter(item => item.passed !== null)
