@@ -6,6 +6,12 @@ export async function updateSession(request: NextRequest) {
     request,
   })
 
+  // Allow /setup through immediately — no auth checks needed
+  if (request.nextUrl.pathname.startsWith('/setup')) {
+    console.log('[Middleware] /setup requested — passing through')
+    return supabaseResponse
+  }
+
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
