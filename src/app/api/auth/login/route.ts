@@ -1,4 +1,4 @@
-import { createServerClient } from '@supabase/ssr'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
 
@@ -37,29 +37,33 @@ export async function POST(request: Request) {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL
     const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     if (!url || !key) {
-      return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
     }
 
-    // Build a response we can attach cookies to
-    const response = NextResponse.json({ success: true })
+    // Collect cookies to set on the final response
+    const cookiesToReturn: { name: string; value: string; options: CookieOptions }[] = []
 
     const supabase = createServerClient(url, key, {
       cookies: {
         getAll() {
-          // Parse cookies from the incoming request
           const cookieHeader = request.headers.get('cookie') || ''
+          if (!cookieHeader) return []
           return cookieHeader.split(';').filter(Boolean).map(c => {
             const [name, ...rest] = c.trim().split('=')
-            return { name, value: rest.join('=') }
+            return { name, value: decodeURIComponent(rest.join('=')) }
           })
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, {
-              ...options,
-              sameSite: 'lax',
-              secure: process.env.NODE_ENV === 'production',
-              httpOnly: true,
+            cookiesToReturn.push({
+              name,
+              value,
+              options: {
+                ...options,
+                sameSite: 'lax',
+                secure: process.env.NODE_ENV === 'production',
+                httpOnly: true,
+              },
             })
           })
         },
@@ -72,16 +76,19 @@ export async function POST(request: Request) {
     })
 
     if (error) {
-      // Return a fresh response without the auth cookies
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
     }
 
-    // response already has cookies set by setAll callback
-    return NextResponse.json({ success: true, user: { id: data.user.id } }, {
-      status: 200,
-      headers: response.headers,
+    // Build final response and attach all cookies
+    const response = NextResponse.json({ success: true, user: { id: data.user.id } })
+    cookiesToReturn.forEach(({ name, value, options }) => {
+      response.cookies.set(name, value, options)
     })
-  } catch {
+
+    return response
+  } catch (err) {
+    // Log to Vercel function logs for debugging
+    console.error('[Auth] Login route error:', err instanceof Error ? err.message : err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
