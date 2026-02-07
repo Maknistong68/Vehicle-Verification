@@ -16,6 +16,7 @@ export default async function NewInspectionPage() {
   const { data: vehicles } = await supabase.from('vehicles_equipment').select('id, plate_number, driver_name, company_id').order('plate_number')
   const { data: equipmentTypes } = await supabase.from('equipment_types').select('id, name, category').eq('is_active', true).order('name')
   const { data: failureReasons } = await supabase.from('failure_reasons').select('id, name').eq('is_active', true).order('name')
+  const { data: companies } = await supabase.from('companies').select('id, name').eq('is_active', true).order('name')
 
   return (
     <>
@@ -23,6 +24,7 @@ export default async function NewInspectionPage() {
       <CreateInspectionForm
         vehicles={maskVehicleRecords(vehicles || [], profile.role as UserRole)}
         equipmentTypes={equipmentTypes || []}
+        companies={companies || []}
         failureReasons={failureReasons || []}
         currentUserId={user.id}
         currentUserRole={profile.role}

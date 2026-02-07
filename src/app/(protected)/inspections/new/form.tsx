@@ -9,6 +9,7 @@ import { sanitizeText } from '@/lib/sanitize'
 interface Props {
   vehicles: { id: string; plate_number: string; driver_name: string | null; company_id?: string | null }[]
   equipmentTypes: { id: string; name: string; category: string }[]
+  companies: { id: string; name: string }[]
   failureReasons: { id: string; name: string }[]
   currentUserId: string
   currentUserRole: string
@@ -20,7 +21,7 @@ const formatDatetimeLocal = (date: Date) => {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
-export function CreateInspectionForm({ vehicles: initialVehicles, equipmentTypes, failureReasons, currentUserId, currentUserRole, currentUserName }: Props) {
+export function CreateInspectionForm({ vehicles: initialVehicles, equipmentTypes, companies, failureReasons, currentUserId, currentUserRole, currentUserName }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
@@ -40,6 +41,11 @@ export function CreateInspectionForm({ vehicles: initialVehicles, equipmentTypes
   const [newEquipmentTypeId, setNewEquipmentTypeId] = useState('')
   const [addingVehicle, setAddingVehicle] = useState(false)
   const [plateError, setPlateError] = useState<string | null>(null)
+  const [newNationalId, setNewNationalId] = useState('')
+  const [newCompanyId, setNewCompanyId] = useState('')
+  const [newYear, setNewYear] = useState('')
+  const [newProject, setNewProject] = useState('')
+  const [newGate, setNewGate] = useState('')
   const [driverError, setDriverError] = useState<string | null>(null)
   const [equipmentError, setEquipmentError] = useState<string | null>(null)
 
@@ -130,6 +136,11 @@ export function CreateInspectionForm({ vehicles: initialVehicles, equipmentTypes
       equipment_type_id: newEquipmentTypeId,
       status: 'updated_inspection_required',
     }
+    if (newNationalId.trim()) insertData.national_id = sanitizeText(newNationalId).slice(0, 50)
+    if (newCompanyId) insertData.company_id = newCompanyId
+    if (newYear) insertData.year_of_manufacture = parseInt(newYear, 10)
+    if (newProject.trim()) insertData.project = sanitizeText(newProject).slice(0, 100)
+    if (newGate.trim()) insertData.gate = sanitizeText(newGate).slice(0, 50)
 
     const { data, error: insertError } = await supabase
       .from('vehicles_equipment')
@@ -152,6 +163,11 @@ export function CreateInspectionForm({ vehicles: initialVehicles, equipmentTypes
       setNewPlate('')
       setNewDriver('')
       setNewEquipmentTypeId('')
+      setNewNationalId('')
+      setNewCompanyId('')
+      setNewYear('')
+      setNewProject('')
+      setNewGate('')
       setDriverError(null)
       setEquipmentError(null)
     }
@@ -332,6 +348,61 @@ export function CreateInspectionForm({ vehicles: initialVehicles, equipmentTypes
                   ))}
                 </select>
                 {equipmentError && <p className="text-xs text-red-500 mt-1">{equipmentError}</p>}
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">National ID</label>
+                <input
+                  type="text"
+                  value={newNationalId}
+                  onChange={(e) => setNewNationalId(e.target.value)}
+                  placeholder="e.g. 1234567890"
+                  className="glass-input text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Company</label>
+                <select
+                  value={newCompanyId}
+                  onChange={(e) => setNewCompanyId(e.target.value)}
+                  className="glass-input text-sm"
+                >
+                  <option value="">Select company...</option>
+                  {companies.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Year of Manufacture</label>
+                <input
+                  type="number"
+                  value={newYear}
+                  onChange={(e) => setNewYear(e.target.value)}
+                  placeholder="e.g. 2020"
+                  min="1900"
+                  max={new Date().getFullYear() + 1}
+                  className="glass-input text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Project</label>
+                <input
+                  type="text"
+                  value={newProject}
+                  onChange={(e) => setNewProject(e.target.value)}
+                  placeholder="Project name"
+                  className="glass-input text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Gate</label>
+                <input
+                  type="text"
+                  value={newGate}
+                  onChange={(e) => setNewGate(e.target.value)}
+                  placeholder="Gate number or name"
+                  className="glass-input text-sm"
+                />
               </div>
               <div className="flex gap-2">
                 <button
