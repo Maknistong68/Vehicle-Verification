@@ -41,7 +41,9 @@ export async function POST(request: Request) {
     })
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 401 })
+      // Generic message to avoid leaking auth internals (e.g. "user not found" vs "wrong password")
+      console.error('[Auth] Login failed:', error.message)
+      return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
     }
 
     return NextResponse.json({ success: true, user: { id: data.user.id } })

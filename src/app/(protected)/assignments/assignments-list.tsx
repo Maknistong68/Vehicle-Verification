@@ -62,7 +62,7 @@ export function AssignmentsList({ assignments, totalCount, currentPage, pageSize
     const supabase = createClient()
     const { error } = await supabase.from('assignments').update({ status: newStatus }).eq('id', assignmentId)
     if (error) {
-      alert('Failed to update assignment: ' + error.message)
+      alert('Failed to update assignment. Please try again.')
     }
     setUpdatingId(null)
     router.refresh()

@@ -43,7 +43,7 @@ export function EditRoleForm({ userId, currentRole, userName, isActive, companie
       .eq('id', userId)
 
     if (updateError) {
-      setError(updateError.message)
+      setError('Failed to update user. Please try again.')
       setLoading(false)
       return
     }

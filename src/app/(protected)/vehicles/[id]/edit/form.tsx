@@ -83,7 +83,7 @@ export function EditVehicleForm({ vehicle, companies, equipmentTypes }: Props) {
       .eq('id', vehicle.id)
 
     if (updateError) {
-      setError(updateError.message)
+      setError('Failed to update vehicle. Please try again.')
       setLoading(false)
       return
     }

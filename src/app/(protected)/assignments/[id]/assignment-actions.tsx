@@ -22,7 +22,7 @@ export function AssignmentActions({ assignmentId, currentStatus }: Props) {
       .eq('id', assignmentId)
 
     if (error) {
-      alert('Failed to update status: ' + error.message)
+      alert('Failed to update status. Please try again.')
     }
     setLoading(null)
     router.refresh()

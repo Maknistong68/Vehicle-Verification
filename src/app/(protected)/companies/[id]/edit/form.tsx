@@ -51,7 +51,7 @@ export function EditCompanyForm({ company }: Props) {
       .eq('id', company.id)
 
     if (updateError) {
-      setError(updateError.message)
+      setError('Failed to update company. Please try again.')
       setLoading(false)
       return
     }

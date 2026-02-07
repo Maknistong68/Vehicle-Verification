@@ -36,7 +36,7 @@ export function CreateAssignmentForm({ companies, inspectors }: Props) {
       })
 
     if (insertError) {
-      setError(insertError.message)
+      setError('Failed to create assignment. Please try again.')
       setLoading(false)
       return
     }

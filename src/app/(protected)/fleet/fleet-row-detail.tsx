@@ -52,7 +52,7 @@ export function FleetRowDetail({ vehicleId, inspections }: Props) {
     const supabase = createClient()
     const { error } = await supabase.from('inspections').update({ status: 'cancelled' }).eq('id', inspectionId)
     if (error) {
-      alert('Failed to cancel inspection: ' + error.message)
+      alert('Failed to cancel inspection. Please try again.')
     }
     setCancellingId(null)
     router.refresh()

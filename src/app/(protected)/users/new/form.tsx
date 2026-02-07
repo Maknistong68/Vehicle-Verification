@@ -78,14 +78,14 @@ export function CreateUserForm({ currentUserRole, companies }: Props) {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-600 mb-1.5">Email *</label>
-            <input name="email" type="email" required className="glass-input" />
+            <input name="email" type="email" required autoComplete="email" className="glass-input" />
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-600 mb-1.5">Password *</label>
-            <input name="password" type="password" required minLength={8} className="glass-input" placeholder="Min 8 characters" />
+            <input name="password" type="password" required minLength={8} autoComplete="new-password" className="glass-input" placeholder="Min 8 chars, upper+lower+number" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-600 mb-1.5">Phone</label>

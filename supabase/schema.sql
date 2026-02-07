@@ -1043,5 +1043,96 @@ CREATE TRIGGER trg_assignment_notifications
 ALTER PUBLICATION supabase_realtime ADD TABLE notifications;
 
 -- ============================================================================
+-- 13. STATUS TRANSITION ENFORCEMENT TRIGGERS
+-- ============================================================================
+
+-- Restrict inspection status changes by role
+CREATE OR REPLACE FUNCTION enforce_inspection_status_rules()
+RETURNS TRIGGER AS $$
+DECLARE
+  current_role TEXT;
+BEGIN
+  SELECT role INTO current_role FROM user_profiles WHERE id = auth.uid();
+
+  IF NEW.status = 'cancelled' AND OLD.status != 'cancelled' THEN
+    IF current_role NOT IN ('owner', 'admin') THEN
+      RAISE EXCEPTION 'Only owners and admins can cancel inspections';
+    END IF;
+  END IF;
+
+  IF NEW.status = 'completed' AND OLD.status != 'completed' THEN
+    IF current_role NOT IN ('owner', 'admin', 'inspector') THEN
+      RAISE EXCEPTION 'Only inspectors can submit inspection results';
+    END IF;
+  END IF;
+
+  IF NEW.verified_by IS NOT NULL AND OLD.verified_by IS NULL THEN
+    IF current_role NOT IN ('owner', 'admin', 'verifier') THEN
+      RAISE EXCEPTION 'Only verifiers can verify inspections';
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER trg_enforce_inspection_status
+  BEFORE UPDATE ON inspections
+  FOR EACH ROW
+  EXECUTE FUNCTION enforce_inspection_status_rules();
+
+-- Restrict assignment status changes by role
+CREATE OR REPLACE FUNCTION enforce_assignment_status_rules()
+RETURNS TRIGGER AS $$
+DECLARE
+  current_role TEXT;
+BEGIN
+  SELECT role INTO current_role FROM user_profiles WHERE id = auth.uid();
+
+  IF NEW.status NOT IN ('assigned', 'rescheduled', 'done', 'delayed') THEN
+    RAISE EXCEPTION 'Invalid assignment status: %', NEW.status;
+  END IF;
+
+  IF current_role = 'inspector' THEN
+    IF NEW.status NOT IN ('done', 'delayed') AND NEW.status != OLD.status THEN
+      RAISE EXCEPTION 'Inspectors can only mark assignments as done or delayed';
+    END IF;
+  END IF;
+
+  IF current_role IN ('contractor', 'verifier') THEN
+    RAISE EXCEPTION 'Contractors and verifiers cannot modify assignments';
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER trg_enforce_assignment_status
+  BEFORE UPDATE ON assignments
+  FOR EACH ROW
+  EXECUTE FUNCTION enforce_assignment_status_rules();
+
+-- Validate inspection result and status enum values
+CREATE OR REPLACE FUNCTION enforce_inspection_result_values()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.result IS NOT NULL AND NEW.result NOT IN ('pending', 'pass', 'fail') THEN
+    RAISE EXCEPTION 'Invalid inspection result: %', NEW.result;
+  END IF;
+
+  IF NEW.status IS NOT NULL AND NEW.status NOT IN ('scheduled', 'in_progress', 'completed', 'cancelled') THEN
+    RAISE EXCEPTION 'Invalid inspection status: %', NEW.status;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER trg_enforce_inspection_values
+  BEFORE INSERT OR UPDATE ON inspections
+  FOR EACH ROW
+  EXECUTE FUNCTION enforce_inspection_result_values();
+
+-- ============================================================================
 -- END OF SCHEMA
 -- ============================================================================

@@ -5,6 +5,7 @@ import { UserRole } from '@/lib/types'
 import { RoleProvider } from '@/lib/role-context'
 import { POVBanner } from '@/components/pov-banner'
 import { NotificationBell } from '@/components/notification-bell'
+import { SessionTimeout } from '@/components/session-timeout'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,7 +33,7 @@ export default async function ProtectedLayout({
           <h1 className="text-xl font-bold text-gray-900 mb-2">Profile Not Found</h1>
           <p className="text-gray-500 text-sm mb-4">
             {error
-              ? `Database error: ${error.message}. Make sure the SQL migration has been run in Supabase SQL Editor.`
+              ? 'A database error occurred. Make sure the SQL migration has been run in Supabase SQL Editor.'
               : 'No user profile found for your account. Please create one via the Setup page.'}
           </p>
           <a href="/setup" className="btn-primary inline-block">Go to Setup</a>
@@ -46,6 +47,7 @@ export default async function ProtectedLayout({
 
   return (
     <RoleProvider actualRole={profile.role as UserRole}>
+      <SessionTimeout />
       <div className="min-h-screen md:flex">
         <Sidebar
           userRole={profile.role as UserRole}

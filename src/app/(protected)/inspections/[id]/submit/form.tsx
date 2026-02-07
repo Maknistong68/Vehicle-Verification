@@ -70,7 +70,7 @@ export function SubmitResultForm({ inspectionId }: { inspectionId: string }) {
       completed_at: new Date().toISOString(),
     }).eq('id', inspectionId)
 
-    if (updateError) { console.error('[Inspection] Submit failed:', updateError.message); setError('Failed to submit inspection. Please try again.'); setLoading(false); return }
+    if (updateError) { setError('Failed to submit inspection. Please try again.'); setLoading(false); return }
 
     // Save checklist items
     const checkedItems = checklistRef.current.filter(item => item.passed !== null)
@@ -86,8 +86,7 @@ export function SubmitResultForm({ inspectionId }: { inspectionId: string }) {
         }))
       )
       if (checklistError) {
-        // Non-blocking: inspection is already submitted, just log
-        console.error('Failed to save checklist:', checklistError.message)
+        // Non-blocking: inspection is already submitted
       }
     }
 

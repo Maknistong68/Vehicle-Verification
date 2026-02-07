@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
 import { sanitizeField } from '@/lib/sanitize'
+import { validatePassword } from '@/lib/password-validation'
 
 const VALID_ROLES = ['admin', 'inspector', 'contractor', 'verifier'] as const
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -52,9 +53,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid email format' }, { status: 400 })
     }
 
-    // Validate password length
-    if (typeof password !== 'string' || password.length < 8 || password.length > 128) {
-      return NextResponse.json({ error: 'Password must be between 8 and 128 characters' }, { status: 400 })
+    // Validate password complexity
+    if (typeof password !== 'string') {
+      return NextResponse.json({ error: 'Invalid password' }, { status: 400 })
+    }
+    const pwError = validatePassword(password)
+    if (pwError) {
+      return NextResponse.json({ error: pwError }, { status: 400 })
     }
 
     // Validate full name length

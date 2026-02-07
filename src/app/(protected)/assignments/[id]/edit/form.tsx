@@ -57,7 +57,7 @@ export function EditAssignmentForm({ assignment, companies, inspectors }: Props)
       .eq('id', assignment.id)
 
     if (updateError) {
-      setError(updateError.message)
+      setError('Failed to update assignment. Please try again.')
       setLoading(false)
       return
     }

@@ -116,7 +116,6 @@ export function CreateInspectionForm({ vehicles: initialVehicles, inspectors, eq
       .single()
 
     if (insertError) {
-      console.error('[Vehicle] Add failed:', insertError.message)
       setError('Failed to add vehicle. Please try again.')
       setAddingVehicle(false)
       return
@@ -194,7 +193,7 @@ export function CreateInspectionForm({ vehicles: initialVehicles, inspectors, eq
       .select('id')
       .single()
 
-    if (insertError) { console.error('[Inspection] Create failed:', insertError.message); setError('Failed to create inspection. Please try again.'); setLoading(false); return }
+    if (insertError) { setError('Failed to create inspection. Please try again.'); setLoading(false); return }
 
     // Save checklist items if recording result now
     if (recordNow && inspectionData) {
@@ -211,7 +210,7 @@ export function CreateInspectionForm({ vehicles: initialVehicles, inspectors, eq
           }))
         )
         if (checklistError) {
-          console.error('Failed to save checklist:', checklistError.message)
+          // Checklist save failed but inspection was created - non-blocking
         }
       }
     }

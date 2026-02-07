@@ -22,11 +22,14 @@ export default async function FleetPage({ searchParams }: { searchParams: Promis
   const params = await searchParams
   const currentPage = Math.max(1, parseInt(params.page || '1', 10) || 1)
   const searchQuery = params.q || ''
-  const filterStatus = params.status || ''
   const filterCompany = params.company || ''
   const filterEquipmentType = params.equipmentType || ''
   const filterCategory = params.category || ''
   const filterResult = params.result || ''
+
+  // Whitelist valid status values to prevent filter injection
+  const VALID_STATUSES = ['verified', 'updated_inspection_required', 'inspection_overdue', 'rejected', 'blacklisted']
+  const filterStatus = VALID_STATUSES.includes(params.status || '') ? params.status! : ''
   const from = (currentPage - 1) * PAGE_SIZE
   const to = from + PAGE_SIZE - 1
 
@@ -43,6 +46,11 @@ export default async function FleetPage({ searchParams }: { searchParams: Promis
   if (!profile) redirect('/login')
   const role = profile.role as UserRole
 
+  // Sanitize search input: strip PostgREST filter operators to prevent injection
+  // Characters that could manipulate the .or() filter: commas (separate filters),
+  // dots (field.operator), parentheses (grouping), backslash (escape)
+  const sanitizedSearch = searchQuery.replace(/[,.()\\\/*]/g, '').slice(0, 100)
+
   // Build the base query with server-side search and filters
   const buildQuery = (forCount: boolean) => {
     let q = forCount
@@ -53,9 +61,10 @@ export default async function FleetPage({ searchParams }: { searchParams: Promis
           equipment_type:equipment_types(name, category, classification)
         `)
 
-    // Server-side search: use .or() with ilike for text search
-    if (searchQuery) {
-      q = q.or(`plate_number.ilike.%${searchQuery}%,driver_name.ilike.%${searchQuery}%,project.ilike.%${searchQuery}%`)
+    // Server-side search: use individual .ilike() calls instead of .or() interpolation
+    // to avoid PostgREST filter injection
+    if (sanitizedSearch) {
+      q = q.or(`plate_number.ilike.%${sanitizedSearch}%,driver_name.ilike.%${sanitizedSearch}%,project.ilike.%${sanitizedSearch}%`)
     }
 
     // Server-side filters

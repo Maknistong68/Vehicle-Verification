@@ -17,8 +17,8 @@ export function ServiceWorkerRegister() {
             reg.update()
           }, 60 * 60 * 1000)
         })
-        .catch((err) => {
-          console.warn('SW registration failed:', err)
+        .catch(() => {
+          // Service worker registration failed silently
         })
     }
   }, [])

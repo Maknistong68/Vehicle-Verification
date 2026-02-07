@@ -20,7 +20,7 @@ export function VerifyForm({ inspectionId }: { inspectionId: string }) {
       verified_at: new Date().toISOString(),
     }).eq('id', inspectionId)
 
-    if (updateError) { setError(updateError.message); setLoading(false); return }
+    if (updateError) { setError('Failed to verify inspection. Please try again.'); setLoading(false); return }
     router.push('/inspections')
     router.refresh()
   }

@@ -35,7 +35,7 @@ export function CreateCompanyForm() {
       })
 
     if (insertError) {
-      setError(insertError.message)
+      setError('Failed to create company. Please try again.')
       setLoading(false)
       return
     }

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { validatePassword } from '@/lib/password-validation'
 
 export function SetupForm() {
   const [email, setEmail] = useState('')
@@ -23,8 +24,9 @@ export function SetupForm() {
       setLoading(false)
       return
     }
-    if (password.length < 8 || password.length > 128) {
-      setError('Password must be between 8 and 128 characters')
+    const pwError = validatePassword(password)
+    if (pwError) {
+      setError(pwError)
       setLoading(false)
       return
     }
@@ -98,7 +100,7 @@ export function SetupForm() {
       })
 
     if (profileError) {
-      setError('Profile creation failed: ' + profileError.message)
+      setError('Profile creation failed. Please try again.')
       setLoading(false)
       return
     }
@@ -144,8 +146,9 @@ export function SetupForm() {
               maxLength={128}
               value={password}
               onChange={e => setPassword(e.target.value)}
+              autoComplete="new-password"
               className="glass-input"
-              placeholder="Min 8 characters"
+              placeholder="Min 8 chars, upper+lower+number"
             />
           </div>
 
