@@ -16,23 +16,24 @@ interface SearchParams {
   equipmentType?: string
   category?: string
   result?: string
+  expiringSoon?: string
 }
 
 export default async function FleetPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const params = await searchParams
   const currentPage = Math.max(1, parseInt(params.page || '1', 10) || 1)
   const searchQuery = params.q || ''
-  const filterCompany = params.company || ''
-  const filterEquipmentType = params.equipmentType || ''
-  const filterCategory = params.category || ''
+  const filterCompany = params.company || ''       // now a UUID (company_id)
+  const filterEquipmentType = params.equipmentType || ''  // now a UUID (equipment_type_id)
+  const filterCategory = params.category || ''      // 'vehicle' | 'heavy_equipment'
   const filterResult = params.result || ''
 
   // Whitelist valid status values to prevent filter injection
   const VALID_STATUSES = ['verified', 'updated_inspection_required', 'inspection_overdue', 'rejected', 'blacklisted']
-  // 'expiring_soon' is a virtual filter handled client-side, not a DB status
+  // 'expiring_soon' is a virtual filter handled server-side with date range
   const VIRTUAL_STATUSES = ['expiring_soon']
   const rawStatus = params.status || ''
-  const isVirtualFilter = VIRTUAL_STATUSES.includes(rawStatus)
+  const isExpiringSoon = rawStatus === 'expiring_soon'
   const filterStatus = VALID_STATUSES.includes(rawStatus) ? rawStatus : ''
   const from = (currentPage - 1) * PAGE_SIZE
   const to = from + PAGE_SIZE - 1
@@ -55,6 +56,17 @@ export default async function FleetPage({ searchParams }: { searchParams: Promis
   // dots (field.operator), parentheses (grouping), backslash (escape)
   const sanitizedSearch = searchQuery.replace(/[,.()\\\/*]/g, '').slice(0, 100)
 
+  // Pre-fetch equipment_type IDs for category filter (need IDs before building query)
+  let categoryEquipmentTypeIds: string[] = []
+  if (filterCategory) {
+    const { data: catTypes } = await supabase
+      .from('equipment_types')
+      .select('id')
+      .eq('category', filterCategory)
+      .eq('is_active', true)
+    categoryEquipmentTypeIds = (catTypes || []).map((t: any) => t.id)
+  }
+
   // Build the base query with server-side search and filters
   const buildQuery = (forCount: boolean) => {
     let q = forCount
@@ -76,16 +88,46 @@ export default async function FleetPage({ searchParams }: { searchParams: Promis
       q = q.eq('status', filterStatus)
     }
 
+    // Expiring Soon: verified vehicles with next_inspection_date within 30 days
+    if (isExpiringSoon) {
+      const nowISO = new Date().toISOString()
+      const in30Days = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+      q = q.eq('status', 'verified').gte('next_inspection_date', nowISO).lte('next_inspection_date', in30Days)
+    }
+
+    // Company filter (by company_id UUID)
+    if (filterCompany) {
+      q = q.eq('company_id', filterCompany)
+    }
+
+    // Equipment Type filter (by equipment_type_id UUID)
+    if (filterEquipmentType) {
+      q = q.eq('equipment_type_id', filterEquipmentType)
+    }
+
+    // Category filter (match equipment_type IDs with that category)
+    if (filterCategory && categoryEquipmentTypeIds.length > 0) {
+      q = q.in('equipment_type_id', categoryEquipmentTypeIds)
+    } else if (filterCategory && categoryEquipmentTypeIds.length === 0) {
+      // No equipment types match this category — force empty result
+      q = q.in('equipment_type_id', ['00000000-0000-0000-0000-000000000000'])
+    }
+
     return q
   }
 
   // Count query
   const { count: totalCount } = await buildQuery(true)
 
-  // Data query with pagination
+  // When inspection result filter is active, skip pagination (need all vehicles to match against inspections client-side)
+  const skipPagination = !!filterResult
   let dataQuery = buildQuery(false)
     .order('created_at', { ascending: false })
-    .range(from, to)
+  if (!skipPagination) {
+    dataQuery = dataQuery.range(from, to)
+  } else {
+    dataQuery = dataQuery.limit(500)
+  }
 
   const { data: vehiclesRaw } = await dataQuery
 
@@ -192,7 +234,7 @@ export default async function FleetPage({ searchParams }: { searchParams: Promis
         pageSize={PAGE_SIZE}
         serverSearch={searchQuery}
         serverFilters={{
-          vehicleStatus: isVirtualFilter ? rawStatus : filterStatus,
+          vehicleStatus: isExpiringSoon ? 'expiring_soon' : filterStatus,
           company: filterCompany,
           equipmentType: filterEquipmentType,
           category: filterCategory,

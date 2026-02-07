@@ -449,6 +449,17 @@ CREATE POLICY "vehicles_equipment_inspector_select"
     AND id IN (SELECT get_inspector_vehicle_ids())
   );
 
+CREATE POLICY "vehicles_equipment_inspector_update"
+  ON vehicles_equipment FOR UPDATE TO authenticated
+  USING (
+    get_user_role() = 'inspector'
+    AND id IN (SELECT get_inspector_vehicle_ids())
+  )
+  WITH CHECK (
+    get_user_role() = 'inspector'
+    AND id IN (SELECT get_inspector_vehicle_ids())
+  );
+
 CREATE POLICY "vehicles_equipment_inspector_insert"
   ON vehicles_equipment FOR INSERT TO authenticated
   WITH CHECK (get_user_role() = 'inspector');

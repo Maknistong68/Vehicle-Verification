@@ -67,12 +67,12 @@ export function FleetFilters({ filters, onChange, companies, equipmentTypes }: P
 
       <select value={filters.company} onChange={e => update('company', e.target.value)} className={selectClass}>
         <option value="">All Companies</option>
-        {companies.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+        {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
       </select>
 
       <select value={filters.equipmentType} onChange={e => update('equipmentType', e.target.value)} className={selectClass}>
         <option value="">All Equipment Types</option>
-        {equipmentTypes.map(et => <option key={et.id} value={et.name}>{et.name}</option>)}
+        {equipmentTypes.map(et => <option key={et.id} value={et.id}>{et.name}</option>)}
       </select>
 
       <select value={filters.category} onChange={e => update('category', e.target.value)} className={selectClass}>
@@ -139,7 +139,7 @@ export function FleetFilters({ filters, onChange, companies, equipmentTypes }: P
                   <label className="block text-[10px] uppercase tracking-wider text-gray-400">Company</label>
                   <select value={filters.company} onChange={e => update('company', e.target.value)} className="w-full glass-input text-sm !py-2">
                     <option value="">All Companies</option>
-                    {companies.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                    {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
 
@@ -147,7 +147,7 @@ export function FleetFilters({ filters, onChange, companies, equipmentTypes }: P
                   <label className="block text-[10px] uppercase tracking-wider text-gray-400">Equipment Type</label>
                   <select value={filters.equipmentType} onChange={e => update('equipmentType', e.target.value)} className="w-full glass-input text-sm !py-2">
                     <option value="">All Equipment Types</option>
-                    {equipmentTypes.map(et => <option key={et.id} value={et.name}>{et.name}</option>)}
+                    {equipmentTypes.map(et => <option key={et.id} value={et.id}>{et.name}</option>)}
                   </select>
                 </div>
 

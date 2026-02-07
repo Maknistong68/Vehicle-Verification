@@ -81,7 +81,7 @@ export function FleetList({ vehicles, inspections, companies, equipmentTypes, to
   const { effectiveRole } = useRole()
   const role = effectiveRole
   const minimal = isMinimalDataRole(role)
-  const canEdit = role === 'owner' || role === 'admin'
+  const canEdit = role === 'owner' || role === 'admin' || role === 'inspector'
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -132,27 +132,15 @@ export function FleetList({ vehicles, inspections, companies, equipmentTypes, to
     return insps[0].result
   }
 
-  // Client-side post-filter for joined fields (company, equipment type, category, result)
-  // that can't easily be filtered server-side on joined tables
+  // Client-side post-filter: only inspection result remains client-side
+  // (company, equipmentType, category, expiring_soon are now server-side)
   const filtered = useMemo(() => {
+    if (!filters.inspectionResult) return vehicles
     return vehicles.filter(v => {
-      // Handle 'expiring_soon' virtual filter (within 30 days)
-      if (filters.vehicleStatus === 'expiring_soon') {
-        if (!v.next_inspection_date) return false
-        const diffMs = new Date(v.next_inspection_date).getTime() - Date.now()
-        const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
-        if (diffDays < 0 || diffDays > 30) return false
-      }
-      if (filters.company && v.company?.name !== filters.company) return false
-      if (filters.equipmentType && v.equipment_type?.name !== filters.equipmentType) return false
-      if (filters.category && v.equipment_type?.category !== filters.category) return false
-      if (filters.inspectionResult) {
-        const latest = getLatestResult(v.id)
-        if (latest !== filters.inspectionResult) return false
-      }
-      return true
+      const latest = getLatestResult(v.id)
+      return latest === filters.inspectionResult
     })
-  }, [vehicles, filters, inspectionsByVehicle])
+  }, [vehicles, filters.inspectionResult, inspectionsByVehicle])
 
   const { sorted, sortKey, sortDir, onSort } = useSortable(filtered, 'plate_number')
 

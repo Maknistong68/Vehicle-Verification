@@ -15,7 +15,7 @@ export default async function EditVehiclePage({ params }: { params: Promise<{ id
     .eq('id', user.id)
     .single()
 
-  if (!profile || !['owner', 'admin'].includes(profile.role)) redirect('/dashboard')
+  if (!profile || !['owner', 'admin', 'inspector'].includes(profile.role)) redirect('/dashboard')
 
   const { data: vehicle } = await supabase
     .from('vehicles_equipment')
