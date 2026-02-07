@@ -3,6 +3,8 @@
 import { useState, useMemo } from 'react'
 import { useRole } from '@/lib/role-context'
 import { SearchBar } from '@/components/search-bar'
+import { SortHeader } from '@/components/sort-header'
+import { useSortable } from '@/hooks/use-sortable'
 import { StatusBadge, getAssignmentStatusVariant } from '@/components/status-badge'
 import { maskName } from '@/lib/masking'
 import { createClient } from '@/lib/supabase/client'
@@ -53,6 +55,8 @@ export function AssignmentsList({ assignments, totalCount, currentPage, pageSize
     })
   }, [assignments, search, role])
 
+  const { sorted, sortKey, sortDir, onSort } = useSortable(filtered, 'scheduled_date', 'desc')
+
   const handleStatusUpdate = async (assignmentId: string, newStatus: string) => {
     const confirmMsg = newStatus === 'delayed'
       ? 'Mark this assignment as delayed?'
@@ -80,14 +84,14 @@ export function AssignmentsList({ assignments, totalCount, currentPage, pageSize
               <tr className="border-b border-gray-200">
                 <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Company</th>
                 <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Inspector</th>
-                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Date</th>
-                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Status</th>
+                <SortHeader label="Date" sortKey="scheduled_date" activeSortKey={sortKey} activeSortDir={sortDir} onSort={onSort} />
+                <SortHeader label="Status" sortKey="status" activeSortKey={sortKey} activeSortDir={sortDir} onSort={onSort} />
                 <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Notes</th>
                 <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filtered.map((a) => (
+              {sorted.map((a) => (
                 <tr key={a.id} className="hover:bg-gray-50">
                   <td className="p-4">
                     <Link href={`/assignments/${a.id}`} className="text-sm font-medium text-gray-900 hover:text-emerald-600">
@@ -135,7 +139,7 @@ export function AssignmentsList({ assignments, totalCount, currentPage, pageSize
 
       {/* Mobile cards */}
       <div className="md:hidden space-y-2">
-        {filtered.map((a) => (
+        {sorted.map((a) => (
           <Link key={a.id} href={`/assignments/${a.id}`} className="block glass-card-interactive p-3.5">
             <div className="flex items-start justify-between mb-1.5">
               <div className="min-w-0">

@@ -2,6 +2,8 @@
 
 import { useState, useMemo } from 'react'
 import { SearchBar } from '@/components/search-bar'
+import { SortHeader } from '@/components/sort-header'
+import { useSortable } from '@/hooks/use-sortable'
 import Link from 'next/link'
 
 interface FailureReason {
@@ -24,6 +26,8 @@ export function FailureReasonsList({ failureReasons }: Props) {
     return failureReasons.filter(fr => fr.name.toLowerCase().includes(q))
   }, [failureReasons, search])
 
+  const { sorted, sortKey, sortDir, onSort } = useSortable(filtered, 'name')
+
   return (
     <>
       <SearchBar value={search} onChange={setSearch} placeholder="Search by name..." />
@@ -34,13 +38,13 @@ export function FailureReasonsList({ failureReasons }: Props) {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Name</th>
-                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Status</th>
+                <SortHeader label="Name" sortKey="name" activeSortKey={sortKey} activeSortDir={sortDir} onSort={onSort} />
+                <SortHeader label="Status" sortKey="is_active" activeSortKey={sortKey} activeSortDir={sortDir} onSort={onSort} />
                 <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filtered.map((fr) => (
+              {sorted.map((fr) => (
                 <tr key={fr.id} className="hover:bg-gray-50">
                   <td className="p-4 text-sm font-medium text-gray-900">{fr.name}</td>
                   <td className="p-4">
@@ -77,7 +81,7 @@ export function FailureReasonsList({ failureReasons }: Props) {
 
       {/* Mobile cards */}
       <div className="md:hidden space-y-2">
-        {filtered.map((fr) => (
+        {sorted.map((fr) => (
           <Link key={fr.id} href={`/failure-reasons/${fr.id}/edit`} className="block glass-card-interactive p-3.5">
             <div className="flex items-start justify-between">
               <p className="text-sm font-medium text-gray-900">{fr.name}</p>

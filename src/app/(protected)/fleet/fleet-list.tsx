@@ -2,6 +2,8 @@
 
 import { useState, useMemo, Fragment, useCallback } from 'react'
 import { useRole } from '@/lib/role-context'
+import { SortHeader } from '@/components/sort-header'
+import { useSortable } from '@/hooks/use-sortable'
 import { StatusBadge, getVehicleStatusVariant, getInspectionResultVariant } from '@/components/status-badge'
 import { maskName, maskPlateNumber, maskNationalId, isMinimalDataRole } from '@/lib/masking'
 import { Pagination } from '@/components/pagination'
@@ -129,6 +131,8 @@ export function FleetList({ vehicles, inspections, companies, equipmentTypes, to
     })
   }, [vehicles, filters, inspectionsByVehicle])
 
+  const { sorted, sortKey, sortDir, onSort } = useSortable(filtered, 'plate_number')
+
   const toggleExpand = (id: string) => {
     setExpandedIds(prev => {
       const next = new Set(prev)
@@ -188,18 +192,18 @@ export function FleetList({ vehicles, inspections, companies, equipmentTypes, to
             <thead>
               <tr className="border-b border-gray-200">
                 <th className="w-10 p-4"></th>
-                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Plate Number</th>
-                {!minimal && <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Driver</th>}
+                <SortHeader label="Plate Number" sortKey="plate_number" activeSortKey={sortKey} activeSortDir={sortDir} onSort={onSort} />
+                {!minimal && <SortHeader label="Driver" sortKey="driver_name" activeSortKey={sortKey} activeSortDir={sortDir} onSort={onSort} />}
                 <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Equipment Type</th>
                 <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Company</th>
-                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Next Inspection</th>
+                <SortHeader label="Status" sortKey="status" activeSortKey={sortKey} activeSortDir={sortDir} onSort={onSort} />
+                <SortHeader label="Next Inspection" sortKey="next_inspection_date" activeSortKey={sortKey} activeSortDir={sortDir} onSort={onSort} />
                 <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Latest Result</th>
                 {canEdit && <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filtered.map(v => {
+              {sorted.map(v => {
                 const isExpanded = expandedIds.has(v.id)
                 const latestResult = getLatestResult(v.id)
                 return (
@@ -280,7 +284,7 @@ export function FleetList({ vehicles, inspections, companies, equipmentTypes, to
 
       {/* Mobile cards */}
       <div className="md:hidden space-y-2">
-        {filtered.map(v => {
+        {sorted.map(v => {
           const isExpanded = expandedIds.has(v.id)
           const latestResult = getLatestResult(v.id)
           const isHeavy = v.equipment_type?.category === 'heavy_equipment'

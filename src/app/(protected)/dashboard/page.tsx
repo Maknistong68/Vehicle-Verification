@@ -19,9 +19,8 @@ interface RecentInspection {
 
 const DATE_FILTERS = [
   { label: 'All', value: 'all' },
-  { label: 'Today', value: 'today' },
-  { label: 'This Week', value: 'week' },
-  { label: 'This Month', value: 'month' },
+  { label: '1W', value: '1w' },
+  { label: '1M', value: '1m' },
   { label: '3M', value: '3m' },
   { label: '6M', value: '6m' },
   { label: '1Y', value: '1y' },
@@ -30,19 +29,12 @@ const DATE_FILTERS = [
 function getStartDate(range: string): string | null {
   const now = new Date()
   switch (range) {
-    case 'today': {
-      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    case '1w': {
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7)
       return start.toISOString()
     }
-    case 'week': {
-      const day = now.getDay()
-      // Start of week (Saturday)
-      const diff = day >= 6 ? day - 6 : day + 1
-      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diff)
-      return start.toISOString()
-    }
-    case 'month': {
-      const start = new Date(now.getFullYear(), now.getMonth(), 1)
+    case '1m': {
+      const start = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate())
       return start.toISOString()
     }
     case '3m': {
@@ -163,7 +155,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       />
 
       {/* ── Date Filter Pills ──────────────────────────────── */}
-      <div className="flex items-center gap-1.5 mb-5 overflow-x-auto pb-1 -mt-2 scrollbar-hide">
+      <div className="inline-flex items-center border border-gray-200 rounded-lg divide-x divide-gray-200 mb-5 -mt-2 overflow-hidden">
         {DATE_FILTERS.map((filter) => {
           const isActive = range === filter.value
           const href = filter.value === 'all' ? '/dashboard' : `/dashboard?range=${filter.value}`
@@ -171,10 +163,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             <Link
               key={filter.value}
               href={href}
-              className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+              className={`px-3.5 py-1.5 text-xs font-medium transition-colors ${
                 isActive
-                  ? 'bg-emerald-500 text-white shadow-sm'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  ? 'bg-blue-50 text-blue-600 font-semibold'
+                  : 'text-gray-500 hover:bg-gray-50'
               }`}
             >
               {filter.label}

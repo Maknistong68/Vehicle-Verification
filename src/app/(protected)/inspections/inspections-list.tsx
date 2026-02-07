@@ -3,6 +3,8 @@
 import { useState, useMemo } from 'react'
 import { useRole } from '@/lib/role-context'
 import { SearchBar } from '@/components/search-bar'
+import { SortHeader } from '@/components/sort-header'
+import { useSortable } from '@/hooks/use-sortable'
 import { StatusBadge, getInspectionResultVariant, getInspectionStatusVariant } from '@/components/status-badge'
 import { maskName, maskPlateNumber } from '@/lib/masking'
 import { createClient } from '@/lib/supabase/client'
@@ -57,6 +59,8 @@ export function InspectionsList({ inspections, totalCount, currentPage, pageSize
       return plate.includes(q) || inspector.includes(q) || type.includes(q) || status.includes(q) || result.includes(q)
     })
   }, [inspections, search, role])
+
+  const { sorted, sortKey, sortDir, onSort } = useSortable(filtered, 'scheduled_date', 'desc')
 
   const handleCancel = async (inspectionId: string) => {
     if (!confirm('Are you sure you want to cancel this inspection? This action cannot be undone.')) return
@@ -155,17 +159,17 @@ export function InspectionsList({ inspections, totalCount, currentPage, pageSize
             <thead>
               <tr className="border-b border-gray-200">
                 <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Vehicle/Equipment</th>
-                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Type</th>
+                <SortHeader label="Type" sortKey="inspection_type" activeSortKey={sortKey} activeSortDir={sortDir} onSort={onSort} />
                 <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Inspector</th>
-                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Result</th>
-                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Scheduled</th>
+                <SortHeader label="Result" sortKey="result" activeSortKey={sortKey} activeSortDir={sortDir} onSort={onSort} />
+                <SortHeader label="Status" sortKey="status" activeSortKey={sortKey} activeSortDir={sortDir} onSort={onSort} />
+                <SortHeader label="Scheduled" sortKey="scheduled_date" activeSortKey={sortKey} activeSortDir={sortDir} onSort={onSort} />
                 <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Verified</th>
                 <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filtered.map((insp) => (
+              {sorted.map((insp) => (
                 <tr key={insp.id} className="hover:bg-gray-50">
                   <td className="p-4">
                     <p className="text-sm text-gray-900 font-medium">{maskPlateNumber(insp.vehicle_equipment?.plate_number, role)}</p>
@@ -198,7 +202,7 @@ export function InspectionsList({ inspections, totalCount, currentPage, pageSize
 
       {/* Mobile cards */}
       <div className="md:hidden space-y-2">
-        {filtered.map((insp) => (
+        {sorted.map((insp) => (
           <div key={insp.id} className="glass-card-interactive p-3.5">
             <div className="flex items-start justify-between mb-1.5">
               <div className="min-w-0">

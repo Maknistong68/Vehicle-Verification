@@ -2,6 +2,8 @@
 
 import { useState, useMemo } from 'react'
 import { SearchBar } from '@/components/search-bar'
+import { SortHeader } from '@/components/sort-header'
+import { useSortable } from '@/hooks/use-sortable'
 import Link from 'next/link'
 
 interface Company {
@@ -33,6 +35,8 @@ export function CompaniesList({ companies }: Props) {
     })
   }, [companies, search])
 
+  const { sorted, sortKey, sortDir, onSort } = useSortable(filtered, 'name')
+
   return (
     <>
       <SearchBar value={search} onChange={setSearch} placeholder="Search by name, code, project, gate..." />
@@ -43,16 +47,16 @@ export function CompaniesList({ companies }: Props) {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Name</th>
-                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Code</th>
+                <SortHeader label="Name" sortKey="name" activeSortKey={sortKey} activeSortDir={sortDir} onSort={onSort} />
+                <SortHeader label="Code" sortKey="code" activeSortKey={sortKey} activeSortDir={sortDir} onSort={onSort} />
                 <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Project</th>
                 <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Gate</th>
-                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Status</th>
+                <SortHeader label="Status" sortKey="is_active" activeSortKey={sortKey} activeSortDir={sortDir} onSort={onSort} />
                 <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filtered.map((c) => (
+              {sorted.map((c) => (
                 <tr key={c.id} className="hover:bg-gray-50">
                   <td className="p-4 text-sm font-medium text-gray-900">{c.name}</td>
                   <td className="p-4 text-sm text-gray-600">{c.code || '\u2014'}</td>
@@ -92,7 +96,7 @@ export function CompaniesList({ companies }: Props) {
 
       {/* Mobile cards */}
       <div className="md:hidden space-y-2">
-        {filtered.map((c) => (
+        {sorted.map((c) => (
           <Link key={c.id} href={`/companies/${c.id}/edit`} className="block glass-card-interactive p-3.5">
             <div className="flex items-start justify-between mb-1.5">
               <div className="min-w-0">

@@ -3,6 +3,8 @@
 import { useState, useMemo } from 'react'
 import { useRole } from '@/lib/role-context'
 import { SearchBar } from '@/components/search-bar'
+import { SortHeader } from '@/components/sort-header'
+import { useSortable } from '@/hooks/use-sortable'
 import { StatusBadge } from '@/components/status-badge'
 import { maskName } from '@/lib/masking'
 import { Pagination } from '@/components/pagination'
@@ -49,6 +51,8 @@ export function UsersList({ users, totalCount, currentPage, pageSize }: Props) {
     })
   }, [users, search, role])
 
+  const { sorted, sortKey, sortDir, onSort } = useSortable(filtered, 'full_name')
+
   return (
     <>
       <SearchBar value={search} onChange={setSearch} placeholder="Search by name, email, role, status..." />
@@ -59,10 +63,10 @@ export function UsersList({ users, totalCount, currentPage, pageSize }: Props) {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Name</th>
-                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Email</th>
-                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Role</th>
-                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Status</th>
+                <SortHeader label="Name" sortKey="full_name" activeSortKey={sortKey} activeSortDir={sortDir} onSort={onSort} />
+                <SortHeader label="Email" sortKey="email" activeSortKey={sortKey} activeSortDir={sortDir} onSort={onSort} />
+                <SortHeader label="Role" sortKey="role" activeSortKey={sortKey} activeSortDir={sortDir} onSort={onSort} />
+                <SortHeader label="Status" sortKey="is_active" activeSortKey={sortKey} activeSortDir={sortDir} onSort={onSort} />
                 <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Created</th>
                 {role === 'owner' && (
                   <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Actions</th>
@@ -70,7 +74,7 @@ export function UsersList({ users, totalCount, currentPage, pageSize }: Props) {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filtered.map((u) => (
+              {sorted.map((u) => (
                 <tr key={u.id} className="hover:bg-gray-50">
                   <td className="p-4">
                     <div className="flex items-center gap-3">
@@ -123,7 +127,7 @@ export function UsersList({ users, totalCount, currentPage, pageSize }: Props) {
 
       {/* Mobile cards */}
       <div className="md:hidden space-y-3">
-        {filtered.map((u) => (
+        {sorted.map((u) => (
           <div key={u.id} className="glass-card-interactive p-4">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center text-sm font-medium text-white shrink-0">

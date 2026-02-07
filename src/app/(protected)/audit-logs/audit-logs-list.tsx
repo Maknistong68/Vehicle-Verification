@@ -2,6 +2,8 @@
 
 import { useState, useMemo } from 'react'
 import { SearchBar } from '@/components/search-bar'
+import { SortHeader } from '@/components/sort-header'
+import { useSortable } from '@/hooks/use-sortable'
 import { Pagination } from '@/components/pagination'
 
 interface AuditLogRow {
@@ -62,6 +64,8 @@ export function AuditLogsList({ logs, totalCount, currentPage, pageSize }: Props
     })
   }, [logs, search])
 
+  const { sorted, sortKey, sortDir, onSort } = useSortable(filtered, 'created_at', 'desc')
+
   return (
     <>
       <SearchBar value={search} onChange={setSearch} placeholder="Search by user email, action, table, role..." />
@@ -72,18 +76,18 @@ export function AuditLogsList({ logs, totalCount, currentPage, pageSize }: Props
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Timestamp</th>
-                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">User</th>
-                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Role</th>
-                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Action</th>
-                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Table</th>
+                <SortHeader label="Timestamp" sortKey="created_at" activeSortKey={sortKey} activeSortDir={sortDir} onSort={onSort} />
+                <SortHeader label="User" sortKey="user_email" activeSortKey={sortKey} activeSortDir={sortDir} onSort={onSort} />
+                <SortHeader label="Role" sortKey="user_role" activeSortKey={sortKey} activeSortDir={sortDir} onSort={onSort} />
+                <SortHeader label="Action" sortKey="action" activeSortKey={sortKey} activeSortDir={sortDir} onSort={onSort} />
+                <SortHeader label="Table" sortKey="table_name" activeSortKey={sortKey} activeSortDir={sortDir} onSort={onSort} />
                 <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Record ID</th>
                 <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Changes</th>
                 <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">IP</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filtered.map((log) => (
+              {sorted.map((log) => (
                 <tr key={log.id} className="hover:bg-gray-50">
                   <td className="p-4 text-xs text-gray-500 whitespace-nowrap">
                     {new Date(log.created_at).toLocaleString()}
@@ -139,7 +143,7 @@ export function AuditLogsList({ logs, totalCount, currentPage, pageSize }: Props
 
       {/* Mobile cards */}
       <div className="md:hidden space-y-3">
-        {filtered.map((log) => (
+        {sorted.map((log) => (
           <div key={log.id} className="glass-card-interactive p-4">
             <div className="flex items-start justify-between mb-2">
               <div>

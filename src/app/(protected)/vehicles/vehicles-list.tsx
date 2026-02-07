@@ -3,6 +3,8 @@
 import { useState, useMemo } from 'react'
 import { useRole } from '@/lib/role-context'
 import { SearchBar } from '@/components/search-bar'
+import { SortHeader } from '@/components/sort-header'
+import { useSortable } from '@/hooks/use-sortable'
 import { StatusBadge, getVehicleStatusVariant } from '@/components/status-badge'
 import { maskName, maskPlateNumber, maskNationalId, isMinimalDataRole } from '@/lib/masking'
 import { Pagination } from '@/components/pagination'
@@ -70,6 +72,8 @@ export function VehiclesList({ vehicles, totalCount, currentPage, pageSize }: Pr
     })
   }, [vehicles, search, role])
 
+  const { sorted, sortKey, sortDir, onSort } = useSortable(filtered, 'plate_number')
+
   return (
     <>
       <SearchBar value={search} onChange={setSearch} placeholder="Search vehicles by plate, driver, company, type, project, status..." />
@@ -80,19 +84,19 @@ export function VehiclesList({ vehicles, totalCount, currentPage, pageSize }: Pr
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Plate Number</th>
-                {!minimal && <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Driver</th>}
+                <SortHeader label="Plate Number" sortKey="plate_number" activeSortKey={sortKey} activeSortDir={sortDir} onSort={onSort} />
+                {!minimal && <SortHeader label="Driver" sortKey="driver_name" activeSortKey={sortKey} activeSortDir={sortDir} onSort={onSort} />}
                 <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Equipment Type</th>
                 <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Company</th>
                 <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Project</th>
-                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Year</th>
-                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Next Inspection</th>
+                <SortHeader label="Year" sortKey="year_of_manufacture" activeSortKey={sortKey} activeSortDir={sortDir} onSort={onSort} />
+                <SortHeader label="Status" sortKey="status" activeSortKey={sortKey} activeSortDir={sortDir} onSort={onSort} />
+                <SortHeader label="Next Inspection" sortKey="next_inspection_date" activeSortKey={sortKey} activeSortDir={sortDir} onSort={onSort} />
                 {canEdit && <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">Action</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filtered.map((v) => (
+              {sorted.map((v) => (
                 <tr key={v.id} className="hover:bg-gray-50">
                   <td className="p-4">
                     <p className="text-sm text-gray-900 font-medium">{maskPlateNumber(v.plate_number, role)}</p>
@@ -144,7 +148,7 @@ export function VehiclesList({ vehicles, totalCount, currentPage, pageSize }: Pr
 
       {/* Mobile cards */}
       <div className="md:hidden space-y-2">
-        {filtered.map((v) => {
+        {sorted.map((v) => {
           const eqType = v.equipment_type
           const isHeavy = eqType?.category === 'heavy_equipment'
           return (
