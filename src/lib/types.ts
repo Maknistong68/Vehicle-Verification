@@ -84,16 +84,6 @@ export interface Inspection {
   verifier?: UserProfile
 }
 
-export interface InspectionChecklistItem {
-  id: string
-  inspection_id: string
-  item_name: string
-  item_description: string | null
-  passed: boolean | null
-  notes: string | null
-  checked_at: string | null
-}
-
 export interface Assignment {
   id: string
   company_id: string
@@ -119,6 +109,13 @@ export interface Notification {
   reference_id: string | null
   reference_table: string | null
   is_read: boolean
+  created_at: string
+}
+
+export interface FailureReason {
+  id: string
+  name: string
+  is_active: boolean
   created_at: string
 }
 

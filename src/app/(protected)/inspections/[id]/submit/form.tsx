@@ -1,13 +1,16 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { EditableChecklist, ChecklistItem } from '@/components/inspection-checklist'
 import { sanitizeText } from '@/lib/sanitize'
-import { FAILURE_REASONS } from '@/lib/failure-reasons'
 
-export function SubmitResultForm({ inspectionId }: { inspectionId: string }) {
+interface Props {
+  inspectionId: string
+  failureReasons: { id: string; name: string }[]
+}
+
+export function SubmitResultForm({ inspectionId, failureReasons }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
@@ -15,7 +18,6 @@ export function SubmitResultForm({ inspectionId }: { inspectionId: string }) {
   const [selectedReasons, setSelectedReasons] = useState<Set<string>>(new Set())
   const [otherChecked, setOtherChecked] = useState(false)
   const [otherText, setOtherText] = useState('')
-  const checklistRef = useRef<ChecklistItem[]>([])
   const router = useRouter()
   const supabase = createClient()
 
@@ -72,24 +74,6 @@ export function SubmitResultForm({ inspectionId }: { inspectionId: string }) {
 
     if (updateError) { setError('Failed to submit inspection. Please try again.'); setLoading(false); return }
 
-    // Save checklist items
-    const checkedItems = checklistRef.current.filter(item => item.passed !== null)
-    if (checkedItems.length > 0) {
-      const { error: checklistError } = await supabase.from('inspection_checklist_items').insert(
-        checkedItems.map(item => ({
-          inspection_id: inspectionId,
-          item_name: sanitizeText(item.item_name).slice(0, 200),
-          item_description: sanitizeText(item.item_description).slice(0, 500),
-          passed: item.passed,
-          notes: sanitizeText(item.notes).slice(0, 500) || null,
-          checked_at: new Date().toISOString(),
-        }))
-      )
-      if (checklistError) {
-        // Non-blocking: inspection is already submitted
-      }
-    }
-
     setSuccess(true)
     setTimeout(() => {
       router.push('/inspections')
@@ -100,11 +84,6 @@ export function SubmitResultForm({ inspectionId }: { inspectionId: string }) {
   return (
     <div className="max-w-2xl">
       <form onSubmit={handleSubmit} className="glass-card p-5 md:p-6 space-y-5">
-        {/* Checklist section */}
-        <EditableChecklist onChange={(items) => { checklistRef.current = items }} />
-
-        <hr className="border-gray-200" />
-
         {/* Result selection */}
         <div>
           <label className="block text-sm font-medium text-gray-600 mb-3">Inspection Result</label>
@@ -142,22 +121,22 @@ export function SubmitResultForm({ inspectionId }: { inspectionId: string }) {
             <label className="block text-sm font-medium text-gray-600 mb-2">Failure Reasons *</label>
             <p className="text-xs text-gray-400 mb-3">Select all that apply</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {FAILURE_REASONS.map(reason => (
+              {failureReasons.map(fr => (
                 <label
-                  key={reason}
+                  key={fr.id}
                   className={`flex items-center gap-2.5 p-2.5 rounded-lg border cursor-pointer transition-colors text-sm ${
-                    selectedReasons.has(reason)
+                    selectedReasons.has(fr.name)
                       ? 'border-red-300 bg-red-50 text-gray-900'
                       : 'border-gray-200 hover:border-gray-300 text-gray-600'
                   }`}
                 >
                   <input
                     type="checkbox"
-                    checked={selectedReasons.has(reason)}
-                    onChange={() => toggleReason(reason)}
+                    checked={selectedReasons.has(fr.name)}
+                    onChange={() => toggleReason(fr.name)}
                     className="rounded text-red-500 shrink-0"
                   />
-                  {reason}
+                  {fr.name}
                 </label>
               ))}
               {/* Other option */}

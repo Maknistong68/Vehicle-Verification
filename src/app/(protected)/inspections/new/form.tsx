@@ -5,13 +5,12 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { cleanPlateNumber, validatePlateNumber } from '@/lib/plate-validation'
 import { sanitizeText } from '@/lib/sanitize'
-import { FAILURE_REASONS } from '@/lib/failure-reasons'
-import { EditableChecklist, ChecklistItem } from '@/components/inspection-checklist'
 
 interface Props {
   vehicles: { id: string; plate_number: string; driver_name: string | null; company_id?: string | null }[]
   inspectors: { id: string; full_name: string }[]
   equipmentTypes: { id: string; name: string; category: string }[]
+  failureReasons: { id: string; name: string }[]
   currentUserId: string
   currentUserRole: string
   currentUserName: string
@@ -19,7 +18,7 @@ interface Props {
   companyName?: string | null
 }
 
-export function CreateInspectionForm({ vehicles: initialVehicles, inspectors, equipmentTypes, currentUserId, currentUserRole, currentUserName, assignmentId, companyName }: Props) {
+export function CreateInspectionForm({ vehicles: initialVehicles, inspectors, equipmentTypes, failureReasons, currentUserId, currentUserRole, currentUserName, assignmentId, companyName }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
@@ -46,8 +45,6 @@ export function CreateInspectionForm({ vehicles: initialVehicles, inspectors, eq
   const [selectedReasons, setSelectedReasons] = useState<Set<string>>(new Set())
   const [otherChecked, setOtherChecked] = useState(false)
   const [otherText, setOtherText] = useState('')
-  const checklistRef = useRef<ChecklistItem[]>([])
-
   const isInspector = currentUserRole === 'inspector'
 
   // Filter vehicles based on search
@@ -194,26 +191,6 @@ export function CreateInspectionForm({ vehicles: initialVehicles, inspectors, eq
       .single()
 
     if (insertError) { setError('Failed to create inspection. Please try again.'); setLoading(false); return }
-
-    // Save checklist items if recording result now
-    if (recordNow && inspectionData) {
-      const checkedItems = checklistRef.current.filter(item => item.passed !== null)
-      if (checkedItems.length > 0) {
-        const { error: checklistError } = await supabase.from('inspection_checklist_items').insert(
-          checkedItems.map(item => ({
-            inspection_id: inspectionData.id,
-            item_name: sanitizeText(item.item_name).slice(0, 200),
-            item_description: sanitizeText(item.item_description || '').slice(0, 500),
-            passed: item.passed,
-            notes: sanitizeText(item.notes || '').slice(0, 500) || null,
-            checked_at: new Date().toISOString(),
-          }))
-        )
-        if (checklistError) {
-          // Checklist save failed but inspection was created - non-blocking
-        }
-      }
-    }
 
     // If coming from an assignment, go back to the assignment detail page
     if (assignmentId) {
@@ -439,11 +416,6 @@ export function CreateInspectionForm({ vehicles: initialVehicles, inspectors, eq
         {/* Instant result section */}
         {recordNow && (
           <div className="space-y-5 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-            {/* Checklist */}
-            <EditableChecklist onChange={(items) => { checklistRef.current = items }} />
-
-            <hr className="border-gray-200" />
-
             {/* Result selection */}
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-3">Inspection Result *</label>
@@ -479,22 +451,22 @@ export function CreateInspectionForm({ vehicles: initialVehicles, inspectors, eq
                 <label className="block text-sm font-medium text-gray-600 mb-2">Failure Reasons *</label>
                 <p className="text-xs text-gray-400 mb-3">Select all that apply</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {FAILURE_REASONS.map(reason => (
+                  {failureReasons.map(fr => (
                     <label
-                      key={reason}
+                      key={fr.id}
                       className={`flex items-center gap-2.5 p-2.5 rounded-lg border cursor-pointer transition-colors text-sm ${
-                        selectedReasons.has(reason)
+                        selectedReasons.has(fr.name)
                           ? 'border-red-300 bg-red-50 text-gray-900'
                           : 'border-gray-200 hover:border-gray-300 text-gray-600'
                       }`}
                     >
                       <input
                         type="checkbox"
-                        checked={selectedReasons.has(reason)}
-                        onChange={() => toggleReason(reason)}
+                        checked={selectedReasons.has(fr.name)}
+                        onChange={() => toggleReason(fr.name)}
                         className="rounded text-red-500 shrink-0"
                       />
-                      {reason}
+                      {fr.name}
                     </label>
                   ))}
                   {/* Other option */}

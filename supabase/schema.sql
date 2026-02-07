@@ -95,6 +95,14 @@ CREATE TABLE equipment_types (
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- 3.2b failure_reasons (no FK dependencies)
+CREATE TABLE failure_reasons (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name        TEXT NOT NULL UNIQUE,
+  is_active   BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- 3.3 user_profiles (depends on: auth.users, companies)
 CREATE TABLE user_profiles (
   id          UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -161,18 +169,7 @@ CREATE TABLE inspections (
   updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 3.7 inspection_checklist_items (depends on: inspections)
-CREATE TABLE inspection_checklist_items (
-  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  inspection_id     UUID NOT NULL REFERENCES inspections(id) ON DELETE CASCADE,
-  item_name         TEXT NOT NULL,
-  item_description  TEXT,
-  passed            BOOLEAN,
-  notes             TEXT,
-  checked_at        TIMESTAMPTZ
-);
-
--- 3.8 notifications (depends on: user_profiles)
+-- 3.7 notifications (depends on: user_profiles)
 CREATE TABLE notifications (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id         UUID NOT NULL REFERENCES user_profiles(id) ON DELETE CASCADE,
@@ -305,6 +302,9 @@ CREATE INDEX idx_companies_name ON companies(name);
 CREATE INDEX idx_equipment_types_category ON equipment_types(category);
 CREATE INDEX idx_equipment_types_name ON equipment_types(name);
 
+-- failure_reasons
+CREATE INDEX idx_failure_reasons_name ON failure_reasons(name);
+
 -- vehicles_equipment
 CREATE INDEX idx_ve_company_id ON vehicles_equipment(company_id);
 CREATE INDEX idx_ve_equipment_type_id ON vehicles_equipment(equipment_type_id);
@@ -329,9 +329,6 @@ CREATE INDEX idx_insp_result ON inspections(result);
 CREATE INDEX idx_insp_scheduled_date ON inspections(scheduled_date);
 CREATE INDEX idx_insp_created_at ON inspections(created_at);
 
--- inspection_checklist_items
-CREATE INDEX idx_checklist_inspection_id ON inspection_checklist_items(inspection_id);
-
 -- notifications
 CREATE INDEX idx_notif_user_id ON notifications(user_id);
 CREATE INDEX idx_notif_user_unread ON notifications(user_id) WHERE is_read = FALSE;
@@ -350,10 +347,10 @@ CREATE INDEX idx_audit_created_at ON audit_logs(created_at);
 ALTER TABLE user_profiles              ENABLE ROW LEVEL SECURITY;
 ALTER TABLE companies                  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE equipment_types            ENABLE ROW LEVEL SECURITY;
+ALTER TABLE failure_reasons            ENABLE ROW LEVEL SECURITY;
 ALTER TABLE vehicles_equipment         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE assignments                ENABLE ROW LEVEL SECURITY;
 ALTER TABLE inspections                ENABLE ROW LEVEL SECURITY;
-ALTER TABLE inspection_checklist_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notifications              ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_logs                 ENABLE ROW LEVEL SECURITY;
 
@@ -415,6 +412,22 @@ CREATE POLICY "equipment_types_admin_all"
 
 CREATE POLICY "equipment_types_select_authenticated"
   ON equipment_types FOR SELECT TO authenticated
+  USING (get_user_role() IN ('inspector', 'contractor', 'verifier'));
+
+
+-- 7.3b failure_reasons
+CREATE POLICY "failure_reasons_owner_all"
+  ON failure_reasons FOR ALL TO authenticated
+  USING (get_user_role() = 'owner')
+  WITH CHECK (get_user_role() = 'owner');
+
+CREATE POLICY "failure_reasons_admin_all"
+  ON failure_reasons FOR ALL TO authenticated
+  USING (get_user_role() = 'admin')
+  WITH CHECK (get_user_role() = 'admin');
+
+CREATE POLICY "failure_reasons_select_authenticated"
+  ON failure_reasons FOR SELECT TO authenticated
   USING (get_user_role() IN ('inspector', 'contractor', 'verifier'));
 
 
@@ -505,52 +518,7 @@ CREATE POLICY "inspections_verifier_update"
   );
 
 
--- 7.6 inspection_checklist_items
-CREATE POLICY "checklist_owner_all"
-  ON inspection_checklist_items FOR ALL TO authenticated
-  USING (get_user_role() = 'owner')
-  WITH CHECK (get_user_role() = 'owner');
-
-CREATE POLICY "checklist_admin_all"
-  ON inspection_checklist_items FOR ALL TO authenticated
-  USING (get_user_role() = 'admin')
-  WITH CHECK (get_user_role() = 'admin');
-
-CREATE POLICY "checklist_inspector_select"
-  ON inspection_checklist_items FOR SELECT TO authenticated
-  USING (get_user_role() = 'inspector' AND inspection_id IN (SELECT id FROM inspections WHERE assigned_inspector_id = auth.uid()));
-
-CREATE POLICY "checklist_inspector_insert"
-  ON inspection_checklist_items FOR INSERT TO authenticated
-  WITH CHECK (get_user_role() = 'inspector' AND inspection_id IN (SELECT id FROM inspections WHERE assigned_inspector_id = auth.uid()));
-
-CREATE POLICY "checklist_inspector_update"
-  ON inspection_checklist_items FOR UPDATE TO authenticated
-  USING (get_user_role() = 'inspector' AND inspection_id IN (SELECT id FROM inspections WHERE assigned_inspector_id = auth.uid()))
-  WITH CHECK (get_user_role() = 'inspector' AND inspection_id IN (SELECT id FROM inspections WHERE assigned_inspector_id = auth.uid()));
-
-CREATE POLICY "checklist_contractor_select"
-  ON inspection_checklist_items FOR SELECT TO authenticated
-  USING (
-    get_user_role() = 'contractor'
-    AND inspection_id IN (
-      SELECT id FROM inspections
-      WHERE vehicle_equipment_id IN (SELECT get_company_vehicle_ids())
-    )
-  );
-
-CREATE POLICY "checklist_verifier_select"
-  ON inspection_checklist_items FOR SELECT TO authenticated
-  USING (
-    get_user_role() = 'verifier'
-    AND inspection_id IN (
-      SELECT id FROM inspections
-      WHERE vehicle_equipment_id IN (SELECT get_company_vehicle_ids())
-    )
-  );
-
-
--- 7.7 assignments
+-- 7.6 assignments
 CREATE POLICY "assignments_owner_all"
   ON assignments FOR ALL TO authenticated
   USING (get_user_role() = 'owner')

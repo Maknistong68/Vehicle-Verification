@@ -31,6 +31,7 @@ export default async function NewInspectionPage({ searchParams }: { searchParams
   const { data: vehicles } = await vehiclesQuery
   const { data: inspectors } = await supabase.from('user_profiles').select('id, full_name').eq('role', 'inspector').eq('is_active', true).order('full_name')
   const { data: equipmentTypes } = await supabase.from('equipment_types').select('id, name, category').eq('is_active', true).order('name')
+  const { data: failureReasons } = await supabase.from('failure_reasons').select('id, name').eq('is_active', true).order('name')
 
   // Fetch company name if assignment context
   let companyName: string | null = null
@@ -46,6 +47,7 @@ export default async function NewInspectionPage({ searchParams }: { searchParams
         vehicles={maskVehicleRecords(vehicles || [], profile.role as UserRole)}
         inspectors={inspectors || []}
         equipmentTypes={equipmentTypes || []}
+        failureReasons={failureReasons || []}
         currentUserId={user.id}
         currentUserRole={profile.role}
         currentUserName={profile.full_name}

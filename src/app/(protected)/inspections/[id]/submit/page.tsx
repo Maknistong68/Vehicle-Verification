@@ -20,10 +20,12 @@ export default async function SubmitInspectionPage({ params }: { params: Promise
 
   if (!inspection || inspection.status === 'completed' || inspection.status === 'cancelled') redirect('/inspections')
 
+  const { data: failureReasons } = await supabase.from('failure_reasons').select('id, name').eq('is_active', true).order('name')
+
   return (
     <>
       <PageHeader title="Submit Inspection Result" description={`Vehicle: ${inspection.vehicle_equipment?.plate_number}`} />
-      <SubmitResultForm inspectionId={inspection.id} />
+      <SubmitResultForm inspectionId={inspection.id} failureReasons={failureReasons || []} />
     </>
   )
 }

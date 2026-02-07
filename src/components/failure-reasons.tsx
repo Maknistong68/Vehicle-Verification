@@ -3,31 +3,9 @@
  * Handles structured ("Brakes, Oil Leak") and "Other: ..." entries.
  */
 
-const KNOWN_REASONS = new Set([
-  'Expired TUV/Certification',
-  'Brakes',
-  'Lights & Signals',
-  'Tires & Wheels',
-  'Steering',
-  'Oil Leak',
-  'Engine Issues',
-  'Body Damage',
-  'Safety Equipment Missing',
-  'Electrical Issues',
-  'Exhaust & Emissions',
-  'Seatbelts',
-  'Documentation Issues',
-])
-
 export function FailureReasonTags({ value }: { value: string }) {
   // Split by comma, but keep "Other: ..." together
   const parts = value.split(/,\s*(?!.*:)/).map(s => s.trim()).filter(Boolean)
-
-  // If it doesn't look structured (no known reasons and no "Other:"), render as plain text
-  const hasStructured = parts.some(p => KNOWN_REASONS.has(p) || p.startsWith('Other:'))
-  if (!hasStructured) {
-    return <p className="text-sm text-red-600">{value}</p>
-  }
 
   const tags: string[] = []
   let otherText: string | null = null
