@@ -41,8 +41,6 @@ export function FleetRowDetail({ vehicleId, inspections }: Props) {
   const [showAll, setShowAll] = useState(false)
 
   const canCancel = role === 'owner' || role === 'admin'
-  const canNewInspection = role === 'owner' || role === 'admin' || role === 'inspector'
-
   const displayed = showAll ? inspections : inspections.slice(0, 5)
   const hasMore = inspections.length > 5
 
@@ -62,11 +60,6 @@ export function FleetRowDetail({ vehicleId, inspections }: Props) {
     return (
       <div className="px-4 py-6 text-center">
         <p className="text-sm text-gray-400">No inspections yet</p>
-        {canNewInspection && (
-          <Link href={`/inspections/new?vehicle_id=${vehicleId}`} className="text-xs text-emerald-600 hover:text-emerald-500 font-medium mt-1 inline-block">
-            + New Inspection
-          </Link>
-        )}
       </div>
     )
   }
@@ -168,11 +161,6 @@ export function FleetRowDetail({ vehicleId, inspections }: Props) {
           </button>
         )}
         {!hasMore && <span />}
-        {canNewInspection && (
-          <Link href={`/inspections/new?vehicle_id=${vehicleId}`} className="text-xs text-emerald-600 hover:text-emerald-500 font-medium">
-            + New Inspection
-          </Link>
-        )}
       </div>
     </div>
   )
