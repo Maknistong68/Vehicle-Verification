@@ -3,6 +3,9 @@ import { UserRole } from './types'
 // Roles that see unmasked data
 const UNMASKED_ROLES: UserRole[] = ['owner']
 
+// Roles that see unmasked plate numbers (broader than UNMASKED_ROLES)
+const PLATE_UNMASKED_ROLES: UserRole[] = ['owner', 'admin', 'inspector']
+
 export function shouldMaskData(role: UserRole): boolean {
   return !UNMASKED_ROLES.includes(role)
 }
@@ -29,7 +32,7 @@ export function maskId(id: string | null | undefined, role: UserRole): string {
 
 export function maskPlateNumber(plate: string | null | undefined, role: UserRole): string {
   if (!plate) return '—'
-  if (!shouldMaskData(role)) return plate
+  if (PLATE_UNMASKED_ROLES.includes(role)) return plate
   if (plate.length <= 4) return '****'
   return '***' + plate.slice(-4)
 }
@@ -57,7 +60,8 @@ export function maskVehicleRecord(record: any, role: UserRole): any {
   if (!shouldMaskData(role)) return record
 
   const masked = { ...record }
-  if ('plate_number' in masked) {
+  // Plate numbers are visible to owner/admin/inspector
+  if ('plate_number' in masked && !PLATE_UNMASKED_ROLES.includes(role)) {
     masked.plate_number = maskPlateNumber(masked.plate_number, role)
   }
   if ('driver_name' in masked) {
