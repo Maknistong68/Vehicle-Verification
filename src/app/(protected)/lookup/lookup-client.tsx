@@ -156,7 +156,7 @@ export function LookupClient({ vehicles, role, hasNoCompany }: Props) {
   }, [])
 
   const watermarkText = searchedAt
-    ? `VVS1 \u2022 ${searchedAt.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}`
+    ? `VVS \u2022 ${searchedAt.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}`
     : ''
 
   // Determine the effective status (blacklisted overrides)
