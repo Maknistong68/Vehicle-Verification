@@ -3,9 +3,13 @@
  * Rules based on Excel data: alphanumeric only, 4–17 chars.
  */
 
-/** Strip spaces, dashes, and non-alphanumeric chars, then uppercase. */
+/** Strip spaces, dashes, and non-alphanumeric chars, normalize Arabic/Eastern numerals, then uppercase. */
 export function cleanPlateNumber(raw: string): string {
-  return raw.replace(/[^A-Za-z0-9]/g, '').toUpperCase()
+  return raw
+    .replace(/[\u0660-\u0669]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x0660 + 48))  // Arabic-Indic ٠-٩ → 0-9
+    .replace(/[\u06F0-\u06F9]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x06F0 + 48))  // Extended Arabic-Indic ۰-۹ → 0-9
+    .replace(/[^A-Za-z0-9]/g, '')
+    .toUpperCase()
 }
 
 /** Returns error message string if invalid, or null if valid. */

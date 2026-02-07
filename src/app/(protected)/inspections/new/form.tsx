@@ -44,8 +44,8 @@ export function CreateInspectionForm({ vehicles: initialVehicles, equipmentTypes
   const [newNationalId, setNewNationalId] = useState('')
   const [newCompanyId, setNewCompanyId] = useState('')
   const [newYear, setNewYear] = useState('')
-  const [newProject, setNewProject] = useState('')
-  const [newGate, setNewGate] = useState('')
+  const [newProject, setNewProject] = useState('OXAGON')
+  const [newGate, setNewGate] = useState('OXAGON GATE')
   const [driverError, setDriverError] = useState<string | null>(null)
   const [equipmentError, setEquipmentError] = useState<string | null>(null)
 
@@ -166,8 +166,8 @@ export function CreateInspectionForm({ vehicles: initialVehicles, equipmentTypes
       setNewNationalId('')
       setNewCompanyId('')
       setNewYear('')
-      setNewProject('')
-      setNewGate('')
+      setNewProject('OXAGON')
+      setNewGate('OXAGON GATE')
       setDriverError(null)
       setEquipmentError(null)
     }
