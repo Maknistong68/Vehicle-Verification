@@ -17,7 +17,56 @@ interface RecentInspection {
   inspector: { full_name: string } | null
 }
 
-export default async function DashboardPage() {
+const DATE_FILTERS = [
+  { label: 'All', value: 'all' },
+  { label: 'Today', value: 'today' },
+  { label: 'This Week', value: 'week' },
+  { label: 'This Month', value: 'month' },
+  { label: '3M', value: '3m' },
+  { label: '6M', value: '6m' },
+  { label: '1Y', value: '1y' },
+] as const
+
+function getStartDate(range: string): string | null {
+  const now = new Date()
+  switch (range) {
+    case 'today': {
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      return start.toISOString()
+    }
+    case 'week': {
+      const day = now.getDay()
+      // Start of week (Saturday)
+      const diff = day >= 6 ? day - 6 : day + 1
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diff)
+      return start.toISOString()
+    }
+    case 'month': {
+      const start = new Date(now.getFullYear(), now.getMonth(), 1)
+      return start.toISOString()
+    }
+    case '3m': {
+      const start = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate())
+      return start.toISOString()
+    }
+    case '6m': {
+      const start = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate())
+      return start.toISOString()
+    }
+    case '1y': {
+      const start = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate())
+      return start.toISOString()
+    }
+    default:
+      return null
+  }
+}
+
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ range?: string }> }) {
+  const { range: rangeParam } = await searchParams
+  const range = rangeParam || 'all'
+  const startDate = getStartDate(range)
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -31,13 +80,21 @@ export default async function DashboardPage() {
   if (!profile) redirect('/login')
   const role = profile.role as UserRole
 
+  // Build count queries — apply date filter if active
+  const q = (extra?: (q: ReturnType<ReturnType<typeof supabase.from>['select']>) => typeof q) => {
+    let query = supabase.from('inspections').select('*', { count: 'exact', head: true })
+    if (extra) query = extra(query)
+    if (startDate) query = query.gte('scheduled_date', startDate)
+    return query
+  }
+
   const results = await Promise.all([
-    supabase.from('inspections').select('*', { count: 'exact', head: true }),
-    supabase.from('inspections').select('*', { count: 'exact', head: true }).eq('result', 'pass'),
-    supabase.from('inspections').select('*', { count: 'exact', head: true }).eq('result', 'fail'),
-    supabase.from('inspections').select('*', { count: 'exact', head: true }).eq('result', 'pending'),
-    supabase.from('inspections').select('*', { count: 'exact', head: true }).eq('status', 'scheduled'),
-    supabase.from('inspections').select('*', { count: 'exact', head: true }).eq('status', 'completed'),
+    q(),
+    q(b => b.eq('result', 'pass')),
+    q(b => b.eq('result', 'fail')),
+    q(b => b.eq('result', 'pending')),
+    q(b => b.eq('status', 'scheduled')),
+    q(b => b.eq('status', 'completed')),
     supabase.from('vehicles_equipment').select('*', { count: 'exact', head: true }),
   ])
 
@@ -49,7 +106,7 @@ export default async function DashboardPage() {
   const completedCount = results[5].count ?? 0
   const totalVehicles = results[6].count ?? 0
 
-  const { data: recentInspectionsRaw } = await supabase
+  let recentQuery = supabase
     .from('inspections')
     .select(`
       id, result, status, scheduled_date, completed_at,
@@ -58,14 +115,26 @@ export default async function DashboardPage() {
     `)
     .order('created_at', { ascending: false })
     .limit(10)
+
+  if (startDate) {
+    recentQuery = recentQuery.gte('created_at', startDate)
+  }
+
+  const { data: recentInspectionsRaw } = await recentQuery
   const recentInspections = recentInspectionsRaw as unknown as RecentInspection[] | null
 
   let inspectorWorkload: { full_name: string; count: number }[] = []
   if (role === 'owner' || role === 'admin') {
-    const { data: activeInspections } = await supabase
+    let workloadQuery = supabase
       .from('inspections')
       .select('assigned_inspector_id, inspector:user_profiles!inspections_assigned_inspector_id_fkey(full_name)')
       .in('status', ['scheduled', 'in_progress'])
+
+    if (startDate) {
+      workloadQuery = workloadQuery.gte('scheduled_date', startDate)
+    }
+
+    const { data: activeInspections } = await workloadQuery
 
     if (activeInspections) {
       const workloadMap = new Map<string, { full_name: string; count: number }>()
@@ -92,6 +161,27 @@ export default async function DashboardPage() {
         title="Dashboard"
         description={`Welcome back, ${profile.full_name}. Here\u2019s your inspection overview.`}
       />
+
+      {/* ── Date Filter Pills ──────────────────────────────── */}
+      <div className="flex items-center gap-1.5 mb-5 overflow-x-auto pb-1 -mt-2 scrollbar-hide">
+        {DATE_FILTERS.map((filter) => {
+          const isActive = range === filter.value
+          const href = filter.value === 'all' ? '/dashboard' : `/dashboard?range=${filter.value}`
+          return (
+            <Link
+              key={filter.value}
+              href={href}
+              className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                isActive
+                  ? 'bg-emerald-500 text-white shadow-sm'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {filter.label}
+            </Link>
+          )
+        })}
+      </div>
 
       {/* ── Overview Stats ─────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 mb-6">
