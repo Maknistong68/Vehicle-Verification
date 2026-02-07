@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { SetupForm } from './setup-form'
 
+export const dynamic = 'force-dynamic'
+
 export default async function SetupPage() {
   const supabase = await createClient()
 
