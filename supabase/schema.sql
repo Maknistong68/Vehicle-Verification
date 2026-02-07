@@ -382,6 +382,9 @@ CREATE POLICY "user_profiles_self_update"
   USING (id = auth.uid())
   WITH CHECK (id = auth.uid());
 
+-- NOTE: Role field is protected from self-update by the
+-- trg_prevent_role_self_update trigger (see section 9).
+
 
 -- **************************************************************************
 -- 7.2 companies POLICIES
@@ -541,7 +544,10 @@ CREATE POLICY "vehicles_equipment_contractor_select"
 
 CREATE POLICY "vehicles_equipment_verifier_select"
   ON vehicles_equipment FOR SELECT TO authenticated
-  USING (get_user_role() = 'verifier');
+  USING (
+    get_user_role() = 'verifier'
+    AND company_id = (SELECT company_id FROM user_profiles WHERE id = auth.uid())
+  );
 
 
 -- **************************************************************************
@@ -602,16 +608,40 @@ CREATE POLICY "inspections_inspector_update"
 
 CREATE POLICY "inspections_contractor_select"
   ON inspections FOR SELECT TO authenticated
-  USING (get_user_role() = 'contractor');
+  USING (
+    get_user_role() = 'contractor'
+    AND vehicle_equipment_id IN (
+      SELECT id FROM vehicles_equipment
+      WHERE company_id = (SELECT company_id FROM user_profiles WHERE id = auth.uid())
+    )
+  );
 
 CREATE POLICY "inspections_verifier_select"
   ON inspections FOR SELECT TO authenticated
-  USING (get_user_role() = 'verifier');
+  USING (
+    get_user_role() = 'verifier'
+    AND vehicle_equipment_id IN (
+      SELECT id FROM vehicles_equipment
+      WHERE company_id = (SELECT company_id FROM user_profiles WHERE id = auth.uid())
+    )
+  );
 
 CREATE POLICY "inspections_verifier_update"
   ON inspections FOR UPDATE TO authenticated
-  USING (get_user_role() = 'verifier')
-  WITH CHECK (get_user_role() = 'verifier');
+  USING (
+    get_user_role() = 'verifier'
+    AND vehicle_equipment_id IN (
+      SELECT id FROM vehicles_equipment
+      WHERE company_id = (SELECT company_id FROM user_profiles WHERE id = auth.uid())
+    )
+  )
+  WITH CHECK (
+    get_user_role() = 'verifier'
+    AND vehicle_equipment_id IN (
+      SELECT id FROM vehicles_equipment
+      WHERE company_id = (SELECT company_id FROM user_profiles WHERE id = auth.uid())
+    )
+  );
 
 
 -- **************************************************************************
@@ -667,11 +697,25 @@ CREATE POLICY "checklist_inspector_update"
 
 CREATE POLICY "checklist_contractor_select"
   ON inspection_checklist_items FOR SELECT TO authenticated
-  USING (get_user_role() = 'contractor');
+  USING (
+    get_user_role() = 'contractor'
+    AND inspection_id IN (
+      SELECT i.id FROM inspections i
+      JOIN vehicles_equipment v ON i.vehicle_equipment_id = v.id
+      WHERE v.company_id = (SELECT company_id FROM user_profiles WHERE id = auth.uid())
+    )
+  );
 
 CREATE POLICY "checklist_verifier_select"
   ON inspection_checklist_items FOR SELECT TO authenticated
-  USING (get_user_role() = 'verifier');
+  USING (
+    get_user_role() = 'verifier'
+    AND inspection_id IN (
+      SELECT i.id FROM inspections i
+      JOIN vehicles_equipment v ON i.vehicle_equipment_id = v.id
+      WHERE v.company_id = (SELECT company_id FROM user_profiles WHERE id = auth.uid())
+    )
+  );
 
 
 -- **************************************************************************
@@ -723,11 +767,17 @@ CREATE POLICY "assignments_inspector_update"
 
 CREATE POLICY "assignments_contractor_select"
   ON assignments FOR SELECT TO authenticated
-  USING (get_user_role() = 'contractor');
+  USING (
+    get_user_role() = 'contractor'
+    AND company_id = (SELECT company_id FROM user_profiles WHERE id = auth.uid())
+  );
 
 CREATE POLICY "assignments_verifier_select"
   ON assignments FOR SELECT TO authenticated
-  USING (get_user_role() = 'verifier');
+  USING (
+    get_user_role() = 'verifier'
+    AND company_id = (SELECT company_id FROM user_profiles WHERE id = auth.uid())
+  );
 
 -- **************************************************************************
 -- 7.8 notifications POLICIES
@@ -759,10 +809,10 @@ CREATE POLICY "audit_logs_owner_select"
   ON audit_logs FOR SELECT TO authenticated
   USING (get_user_role() = 'owner');
 
--- All authenticated: INSERT only (via triggers/functions)
-CREATE POLICY "audit_logs_authenticated_insert"
+-- Authenticated: INSERT only where user_id matches caller (prevents impersonation)
+CREATE POLICY "audit_logs_trigger_insert"
   ON audit_logs FOR INSERT TO authenticated
-  WITH CHECK (TRUE);
+  WITH CHECK (user_id = auth.uid());
 
 -- NO UPDATE policy -> updates denied by RLS
 -- NO DELETE policy -> deletes denied by RLS
@@ -850,6 +900,41 @@ CREATE TRIGGER trg_assignments_audit
   AFTER INSERT OR UPDATE OR DELETE ON assignments
   FOR EACH ROW
   EXECUTE FUNCTION audit_trigger_function();
+
+CREATE TRIGGER trg_user_profiles_audit
+  AFTER INSERT OR UPDATE OR DELETE ON user_profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION audit_trigger_function();
+
+CREATE TRIGGER trg_companies_audit
+  AFTER INSERT OR UPDATE OR DELETE ON companies
+  FOR EACH ROW
+  EXECUTE FUNCTION audit_trigger_function();
+
+-- Prevent privilege escalation: block role field changes except by owners
+CREATE OR REPLACE FUNCTION prevent_role_self_update()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NEW.role = OLD.role THEN
+    RETURN NEW;
+  END IF;
+
+  IF (SELECT role FROM user_profiles WHERE id = auth.uid()) = 'owner' THEN
+    RETURN NEW;
+  END IF;
+
+  RAISE EXCEPTION 'Only owners can change user roles';
+END;
+$$;
+
+CREATE TRIGGER trg_prevent_role_self_update
+  BEFORE UPDATE ON user_profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION prevent_role_self_update();
 
 -- ============================================================================
 -- 10. UPDATED_AT AUTO-UPDATE TRIGGER

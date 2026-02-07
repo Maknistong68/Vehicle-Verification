@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { cleanPlateNumber, validatePlateNumber } from '@/lib/plate-validation'
+import { sanitizeText } from '@/lib/sanitize'
 
 interface Props {
   vehicle: {
@@ -34,6 +36,8 @@ export function EditVehicleForm({ vehicle, companies, equipmentTypes }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const [plateNumber, setPlateNumber] = useState(vehicle.plate_number)
+  const [plateError, setPlateError] = useState<string | null>(null)
   const router = useRouter()
   const supabase = createClient()
 
@@ -43,20 +47,37 @@ export function EditVehicleForm({ vehicle, companies, equipmentTypes }: Props) {
     setError(null)
     setSuccess(false)
 
+    // Validate plate number
+    const plateErr = validatePlateNumber(plateNumber)
+    if (plateErr) {
+      setPlateError(plateErr)
+      setLoading(false)
+      return
+    }
+
     const fd = new FormData(e.currentTarget)
+
+    // Validate status is a known value
+    const status = fd.get('status') as string
+    const validStatuses = VEHICLE_STATUSES.map(s => s.value)
+    if (!validStatuses.includes(status)) {
+      setError('Invalid status')
+      setLoading(false)
+      return
+    }
 
     const { error: updateError } = await supabase
       .from('vehicles_equipment')
       .update({
-        plate_number: fd.get('plate_number') as string,
-        driver_name: (fd.get('driver_name') as string) || null,
-        national_id: (fd.get('national_id') as string) || null,
+        plate_number: plateNumber,
+        driver_name: sanitizeText(fd.get('driver_name') as string).slice(0, 100) || null,
+        national_id: sanitizeText(fd.get('national_id') as string).slice(0, 20) || null,
         company_id: (fd.get('company_id') as string) || null,
         equipment_type_id: (fd.get('equipment_type_id') as string) || null,
         year_of_manufacture: fd.get('year_of_manufacture') ? parseInt(fd.get('year_of_manufacture') as string) : null,
-        project: (fd.get('project') as string) || null,
-        gate: (fd.get('gate') as string) || null,
-        status: fd.get('status') as string,
+        project: sanitizeText(fd.get('project') as string).slice(0, 100) || null,
+        gate: sanitizeText(fd.get('gate') as string).slice(0, 50) || null,
+        status,
         next_inspection_date: (fd.get('next_inspection_date') as string) || null,
       })
       .eq('id', vehicle.id)
@@ -81,7 +102,17 @@ export function EditVehicleForm({ vehicle, companies, equipmentTypes }: Props) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-600 mb-1.5">Plate Number *</label>
-            <input name="plate_number" required className="glass-input" defaultValue={vehicle.plate_number} />
+            <input
+              name="plate_number"
+              required
+              className="glass-input"
+              value={plateNumber}
+              onChange={(e) => {
+                setPlateNumber(cleanPlateNumber(e.target.value))
+                setPlateError(null)
+              }}
+            />
+            {plateError && <p className="text-xs text-red-500 mt-1">{plateError}</p>}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-600 mb-1.5">Driver Name</label>

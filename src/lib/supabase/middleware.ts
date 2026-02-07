@@ -55,6 +55,20 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(url)
     }
 
+    // Lock /setup if any owner account already exists
+    if (request.nextUrl.pathname.startsWith('/setup')) {
+      const { count } = await supabase
+        .from('user_profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('role', 'owner')
+
+      if (count && count > 0) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/login'
+        return NextResponse.redirect(url)
+      }
+    }
+
     // Role-based route protection
     if (user) {
       const { data: profile } = await supabase
@@ -84,8 +98,19 @@ export async function updateSession(request: NextRequest) {
     }
 
     return supabaseResponse
-  } catch {
-    // If middleware fails, allow the request through — page-level auth will catch it
-    return supabaseResponse
+  } catch (error) {
+    // Deny by default — never allow through on auth failure
+    console.error('[Middleware] Auth check failed:', error instanceof Error ? error.message : error)
+
+    const publicRoutes = ['/login', '/auth/callback', '/setup']
+    const isPublicRoute = publicRoutes.some(route => request.nextUrl.pathname.startsWith(route))
+
+    if (isPublicRoute) {
+      return supabaseResponse
+    }
+
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    return NextResponse.redirect(url)
   }
 }

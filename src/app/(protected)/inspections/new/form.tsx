@@ -3,6 +3,8 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { cleanPlateNumber, validatePlateNumber } from '@/lib/plate-validation'
+import { sanitizeText } from '@/lib/sanitize'
 
 interface Props {
   vehicles: { id: string; plate_number: string; driver_name: string | null; company_id?: string | null }[]
@@ -34,6 +36,7 @@ export function CreateInspectionForm({ vehicles: initialVehicles, inspectors, eq
   const [newDriver, setNewDriver] = useState('')
   const [newEquipmentTypeId, setNewEquipmentTypeId] = useState('')
   const [addingVehicle, setAddingVehicle] = useState(false)
+  const [plateError, setPlateError] = useState<string | null>(null)
 
   const isInspector = currentUserRole === 'inspector'
 
@@ -62,15 +65,21 @@ export function CreateInspectionForm({ vehicles: initialVehicles, inspectors, eq
   }, [])
 
   const handleAddVehicle = async () => {
-    if (!newPlate.trim()) return
+    const cleaned = cleanPlateNumber(newPlate)
+    const plateErr = validatePlateNumber(cleaned)
+    if (plateErr) {
+      setPlateError(plateErr)
+      return
+    }
+    setPlateError(null)
     setAddingVehicle(true)
     setError(null)
 
     const insertData: Record<string, unknown> = {
-      plate_number: newPlate.trim().toUpperCase(),
+      plate_number: cleaned,
       status: 'updated_inspection_required',
     }
-    if (newDriver.trim()) insertData.driver_name = newDriver.trim()
+    if (newDriver.trim()) insertData.driver_name = sanitizeText(newDriver).slice(0, 100)
     if (newEquipmentTypeId) insertData.equipment_type_id = newEquipmentTypeId
 
     const { data, error: insertError } = await supabase
@@ -116,7 +125,7 @@ export function CreateInspectionForm({ vehicles: initialVehicles, inspectors, eq
       assigned_by: user?.id,
       scheduled_date: fd.get('scheduled_date') as string,
       inspection_type: fd.get('inspection_type') as string,
-      notes: (fd.get('notes') as string) || null,
+      notes: sanitizeText(fd.get('notes') as string).slice(0, 1000) || null,
       result: 'pending',
       status: 'scheduled',
     }
@@ -230,10 +239,14 @@ export function CreateInspectionForm({ vehicles: initialVehicles, inspectors, eq
                 <input
                   type="text"
                   value={newPlate}
-                  onChange={(e) => setNewPlate(e.target.value)}
-                  placeholder="e.g. ABC 1234"
+                  onChange={(e) => {
+                    setNewPlate(cleanPlateNumber(e.target.value))
+                    setPlateError(null)
+                  }}
+                  placeholder="e.g. ABC1234"
                   className="glass-input text-sm"
                 />
+                {plateError && <p className="text-xs text-red-500 mt-1">{plateError}</p>}
               </div>
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Driver Name (optional)</label>

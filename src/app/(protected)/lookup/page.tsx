@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { UserRole } from '@/lib/types'
+import { maskVehicleRecords } from '@/lib/masking'
 import { LookupClient } from './lookup-client'
 
 export default async function LookupPage() {
@@ -42,7 +43,7 @@ export default async function LookupPage() {
 
   return (
     <LookupClient
-      vehicles={(vehicles || []) as any}
+      vehicles={maskVehicleRecords(vehicles || [], role) as any}
       role={role}
       hasNoCompany={hasNoCompany}
     />

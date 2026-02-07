@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { PageHeader } from '@/components/page-header'
+import { maskVehicleRecords } from '@/lib/masking'
+import { UserRole } from '@/lib/types'
 import { CreateInspectionForm } from './form'
 
 interface SearchParams {
@@ -41,7 +43,7 @@ export default async function NewInspectionPage({ searchParams }: { searchParams
     <>
       <PageHeader title="Create Inspection" description="Schedule a new vehicle or equipment inspection." />
       <CreateInspectionForm
-        vehicles={vehicles || []}
+        vehicles={maskVehicleRecords(vehicles || [], profile.role as UserRole)}
         inspectors={inspectors || []}
         equipmentTypes={equipmentTypes || []}
         currentUserId={user.id}

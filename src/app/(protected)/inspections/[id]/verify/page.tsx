@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { PageHeader } from '@/components/page-header'
 import { VerifyForm } from './form'
 import { StatusBadge, getInspectionResultVariant } from '@/components/status-badge'
+import { FailureReasonTags } from '@/components/failure-reasons'
 
 export default async function VerifyInspectionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -31,7 +32,7 @@ export default async function VerifyInspectionPage({ params }: { params: Promise
             <div><p className="text-xs text-gray-500">Vehicle</p><p className="text-sm text-gray-900">{inspection.vehicle_equipment?.plate_number}</p></div>
             <div><p className="text-xs text-gray-500">Result</p><StatusBadge label={inspection.result} variant={getInspectionResultVariant(inspection.result)} /></div>
             <div><p className="text-xs text-gray-500">Completed</p><p className="text-sm text-gray-900">{inspection.completed_at ? new Date(inspection.completed_at).toLocaleString() : '\u2014'}</p></div>
-            {inspection.failure_reason && <div className="col-span-2"><p className="text-xs text-gray-500">Failure Reason</p><p className="text-sm text-red-600">{inspection.failure_reason}</p></div>}
+            {inspection.failure_reason && <div className="col-span-2"><p className="text-xs text-gray-500">Failure Reason</p><div className="mt-1"><FailureReasonTags value={inspection.failure_reason} /></div></div>}
             {inspection.notes && <div className="col-span-2"><p className="text-xs text-gray-500">Notes</p><p className="text-sm text-gray-600">{inspection.notes}</p></div>}
           </div>
         </div>

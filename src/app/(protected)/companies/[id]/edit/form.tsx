@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { sanitizeText } from '@/lib/sanitize'
 
 interface Props {
   company: {
@@ -31,13 +32,20 @@ export function EditCompanyForm({ company }: Props) {
 
     const fd = new FormData(e.currentTarget)
 
+    const name = sanitizeText(fd.get('name') as string).slice(0, 100)
+    if (!name) {
+      setError('Company name is required')
+      setLoading(false)
+      return
+    }
+
     const { error: updateError } = await supabase
       .from('companies')
       .update({
-        name: fd.get('name') as string,
-        code: (fd.get('code') as string) || null,
-        project: (fd.get('project') as string) || null,
-        gate: (fd.get('gate') as string) || null,
+        name,
+        code: sanitizeText(fd.get('code') as string).slice(0, 20) || null,
+        project: sanitizeText(fd.get('project') as string).slice(0, 100) || null,
+        gate: sanitizeText(fd.get('gate') as string).slice(0, 50) || null,
         is_active: isActive,
       })
       .eq('id', company.id)

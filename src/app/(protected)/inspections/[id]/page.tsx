@@ -5,6 +5,7 @@ import { StatusBadge, getInspectionResultVariant, getInspectionStatusVariant } f
 import { maskName, maskPlateNumber, maskNationalId } from '@/lib/masking'
 import { UserRole } from '@/lib/types'
 import { ReadOnlyChecklist } from '@/components/inspection-checklist'
+import { FailureReasonTags } from '@/components/failure-reasons'
 import Link from 'next/link'
 
 export default async function InspectionDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -63,7 +64,7 @@ export default async function InspectionDetailPage({ params }: { params: Promise
             {inspection.completed_at && <div className="flex justify-between"><span className="text-sm text-gray-400">Completed</span><span className="text-sm text-gray-900">{new Date(inspection.completed_at).toLocaleString()}</span></div>}
             <div className="flex justify-between"><span className="text-sm text-gray-400">Inspector</span><span className="text-sm text-gray-900">{maskName(inspection.inspector?.full_name, role)}</span></div>
             {inspection.verified_at && <div className="flex justify-between"><span className="text-sm text-gray-400">Verified By</span><span className="text-sm text-green-600">{maskName(inspection.verifier?.full_name, role)}</span></div>}
-            {inspection.failure_reason && <div><span className="text-sm text-gray-400">Failure Reason</span><p className="text-sm text-red-600 mt-1">{inspection.failure_reason}</p></div>}
+            {inspection.failure_reason && <div><span className="text-sm text-gray-400">Failure Reason</span><div className="mt-1"><FailureReasonTags value={inspection.failure_reason} /></div></div>}
             {inspection.notes && <div><span className="text-sm text-gray-400">Notes</span><p className="text-sm text-gray-600 mt-1">{inspection.notes}</p></div>}
           </div>
         </div>

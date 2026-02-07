@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { sanitizeText } from '@/lib/sanitize'
 
 interface Props {
   assignment: {
@@ -44,7 +45,7 @@ export function EditAssignmentForm({ assignment, companies, inspectors }: Props)
       company_id: fd.get('company_id') as string,
       inspector_id: (fd.get('inspector_id') as string) || null,
       scheduled_date: newDate,
-      notes: (fd.get('notes') as string) || null,
+      notes: sanitizeText(fd.get('notes') as string).slice(0, 1000) || null,
     }
     if (dateChanged && assignment.status === 'assigned') {
       updateData.status = 'rescheduled'

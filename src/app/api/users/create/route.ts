@@ -1,12 +1,28 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
+import { sanitizeField } from '@/lib/sanitize'
 
 const VALID_ROLES = ['admin', 'inspector', 'contractor', 'verifier'] as const
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
+// Rate limit: 10 user creations per hour per IP
+const MAX_CREATES = 10
+const WINDOW_MS = 60 * 60 * 1000
+
 export async function POST(request: Request) {
   try {
+    const ip = getClientIp(request)
+    const rateCheck = checkRateLimit(`user-create:${ip}`, MAX_CREATES, WINDOW_MS)
+
+    if (!rateCheck.success) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil(rateCheck.resetMs / 1000)) } }
+      )
+    }
+
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -69,12 +85,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Insufficient permissions for this role' }, { status: 403 })
     }
 
+    // Sanitize text inputs to prevent stored XSS
+    const cleanName = sanitizeField(full_name, 100)
+    const cleanPhone = sanitizeField(phone, 20)
+
+    if (!cleanName) {
+      return NextResponse.json({ error: 'Full name is required' }, { status: 400 })
+    }
+
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
-          full_name: full_name.trim(),
+          full_name: cleanName,
           role,
         },
       },
@@ -93,9 +117,9 @@ export async function POST(request: Request) {
       .insert({
         id: authData.user.id,
         email,
-        full_name: full_name.trim(),
+        full_name: cleanName,
         role,
-        phone: phone?.trim() || null,
+        phone: cleanPhone,
         company_id: role === 'contractor' ? company_id : null,
         is_active: true,
       })
@@ -112,7 +136,7 @@ export async function POST(request: Request) {
       action: 'CREATE',
       table_name: 'user_profiles',
       record_id: authData.user.id,
-      new_values: { email, full_name: full_name.trim(), role, company_id: role === 'contractor' ? company_id : null },
+      new_values: { email, full_name: cleanName, role, company_id: role === 'contractor' ? company_id : null },
     })
 
     if (auditError) {

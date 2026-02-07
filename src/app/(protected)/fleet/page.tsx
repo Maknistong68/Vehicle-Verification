@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { PageHeader } from '@/components/page-header'
 import { UserRole } from '@/lib/types'
+import { maskVehicleRecords } from '@/lib/masking'
 import Link from 'next/link'
 import { FleetList } from './fleet-list'
 
@@ -155,7 +156,7 @@ export default async function FleetPage({ searchParams }: { searchParams: Promis
       />
 
       <FleetList
-        vehicles={filteredVehicles as any}
+        vehicles={maskVehicleRecords(filteredVehicles, role) as any}
         inspections={inspections as any}
         companies={companiesRes.data || []}
         equipmentTypes={equipmentTypesRes.data || []}

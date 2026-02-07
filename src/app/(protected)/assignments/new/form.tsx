@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { sanitizeText } from '@/lib/sanitize'
 
 interface Props {
   companies: { id: string; name: string }[]
@@ -31,7 +32,7 @@ export function CreateAssignmentForm({ companies, inspectors }: Props) {
         scheduled_date: fd.get('scheduled_date') as string,
         assigned_by: user?.id,
         status: 'assigned',
-        notes: (fd.get('notes') as string) || null,
+        notes: sanitizeText(fd.get('notes') as string).slice(0, 1000) || null,
       })
 
     if (insertError) {
