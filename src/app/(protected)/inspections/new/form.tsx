@@ -233,7 +233,7 @@ export function CreateInspectionForm({ vehicles: initialVehicles, equipmentTypes
                   }}
                   onFocus={() => setShowVehicleDropdown(true)}
                   placeholder="Search plate number or driver..."
-                  className="glass-input pl-10 text-sm"
+                  className="glass-input !pl-10 !pr-10 text-sm"
                 />
                 {selectedVehicle && (
                   <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -364,23 +364,14 @@ export function CreateInspectionForm({ vehicles: initialVehicles, equipmentTypes
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-600 mb-1.5">Scheduled Date</label>
-          <div className="flex gap-2">
-            <input
-              type="datetime-local"
-              name="scheduled_date"
-              required
-              value={scheduledDate}
-              onChange={(e) => setScheduledDate(e.target.value)}
-              className="glass-input flex-1"
-            />
-            <button
-              type="button"
-              onClick={() => setScheduledDate(formatDatetimeLocal(new Date()))}
-              className="btn-secondary text-sm whitespace-nowrap"
-            >
-              Reset to now
-            </button>
-          </div>
+          <input
+            type="datetime-local"
+            name="scheduled_date"
+            required
+            value={scheduledDate}
+            onChange={(e) => setScheduledDate(e.target.value)}
+            className="glass-input"
+          />
         </div>
 
         {/* Result section */}
