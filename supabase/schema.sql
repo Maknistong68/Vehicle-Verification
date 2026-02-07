@@ -1,6 +1,7 @@
 -- ============================================================================
 -- VVS1 - Vehicle & Equipment Inspection Management System
 -- Complete Database Schema for Supabase (PostgreSQL)
+-- Version 2.0 - Clean rebuild
 -- ============================================================================
 
 -- ============================================================================
@@ -70,10 +71,31 @@ CREATE TYPE notification_type AS ENUM (
 
 
 -- ============================================================================
--- 3. TABLES (must be created BEFORE functions that reference them)
+-- 3. TABLES (ordered by dependency — no forward references)
 -- ============================================================================
 
--- 3.1 user_profiles
+-- 3.1 companies (no FK dependencies)
+CREATE TABLE companies (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name        TEXT NOT NULL,
+  code        TEXT,
+  project     TEXT,
+  gate        TEXT,
+  is_active   BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 3.2 equipment_types (no FK dependencies)
+CREATE TABLE equipment_types (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name            TEXT NOT NULL,
+  category        equipment_category NOT NULL,
+  classification  TEXT,
+  is_active       BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 3.3 user_profiles (depends on: auth.users, companies)
 CREATE TABLE user_profiles (
   id          UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email       TEXT NOT NULL,
@@ -86,28 +108,7 @@ CREATE TABLE user_profiles (
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 3.2 companies
-CREATE TABLE companies (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name        TEXT NOT NULL,
-  code        TEXT,
-  project     TEXT,
-  gate        TEXT,
-  is_active   BOOLEAN NOT NULL DEFAULT TRUE,
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
--- 3.3 equipment_types
-CREATE TABLE equipment_types (
-  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name            TEXT NOT NULL,
-  category        equipment_category NOT NULL,
-  classification  TEXT,
-  is_active       BOOLEAN NOT NULL DEFAULT TRUE,
-  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
--- 3.4 vehicles_equipment
+-- 3.4 vehicles_equipment (depends on: companies, equipment_types, auth.users)
 CREATE TABLE vehicles_equipment (
   id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   plate_number          TEXT NOT NULL,
@@ -126,7 +127,7 @@ CREATE TABLE vehicles_equipment (
   updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 3.5 assignments (replaces appointments - company-level scheduling)
+-- 3.5 assignments (depends on: companies, user_profiles)
 CREATE TABLE assignments (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id      UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
@@ -139,7 +140,7 @@ CREATE TABLE assignments (
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 3.6 inspections
+-- 3.6 inspections (depends on: vehicles_equipment, user_profiles, assignments)
 CREATE TABLE inspections (
   id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   vehicle_equipment_id  UUID NOT NULL REFERENCES vehicles_equipment(id) ON DELETE CASCADE,
@@ -160,7 +161,7 @@ CREATE TABLE inspections (
   updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 3.7 inspection_checklist_items
+-- 3.7 inspection_checklist_items (depends on: inspections)
 CREATE TABLE inspection_checklist_items (
   id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   inspection_id     UUID NOT NULL REFERENCES inspections(id) ON DELETE CASCADE,
@@ -171,7 +172,7 @@ CREATE TABLE inspection_checklist_items (
   checked_at        TIMESTAMPTZ
 );
 
--- 3.8 notifications
+-- 3.8 notifications (depends on: user_profiles)
 CREATE TABLE notifications (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id         UUID NOT NULL REFERENCES user_profiles(id) ON DELETE CASCADE,
@@ -184,7 +185,7 @@ CREATE TABLE notifications (
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 3.9 audit_logs (immutable - no UPDATE or DELETE ever permitted)
+-- 3.9 audit_logs (immutable — no UPDATE or DELETE ever permitted)
 CREATE TABLE audit_logs (
   id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   user_id     UUID,
@@ -201,7 +202,7 @@ CREATE TABLE audit_logs (
 
 
 -- ============================================================================
--- 4. HELPER FUNCTIONS (tables exist now, safe to reference them)
+-- 4. HELPER FUNCTIONS
 -- ============================================================================
 
 CREATE OR REPLACE FUNCTION get_user_role()
@@ -261,65 +262,56 @@ $$;
 -- user_profiles
 CREATE INDEX idx_user_profiles_role ON user_profiles(role);
 CREATE INDEX idx_user_profiles_email ON user_profiles(email);
-CREATE INDEX idx_user_profiles_is_active ON user_profiles(is_active);
 CREATE INDEX idx_user_profiles_company_id ON user_profiles(company_id);
 
 -- companies
 CREATE INDEX idx_companies_code ON companies(code);
-CREATE INDEX idx_companies_is_active ON companies(is_active);
+CREATE INDEX idx_companies_name ON companies(name);
 
 -- equipment_types
 CREATE INDEX idx_equipment_types_category ON equipment_types(category);
-CREATE INDEX idx_equipment_types_is_active ON equipment_types(is_active);
+CREATE INDEX idx_equipment_types_name ON equipment_types(name);
 
 -- vehicles_equipment
 CREATE INDEX idx_ve_company_id ON vehicles_equipment(company_id);
 CREATE INDEX idx_ve_equipment_type_id ON vehicles_equipment(equipment_type_id);
 CREATE INDEX idx_ve_status ON vehicles_equipment(status);
 CREATE INDEX idx_ve_plate_number ON vehicles_equipment(plate_number);
-CREATE INDEX idx_ve_blacklisted ON vehicles_equipment(blacklisted);
+CREATE INDEX idx_ve_blacklisted ON vehicles_equipment(blacklisted) WHERE blacklisted = TRUE;
 CREATE INDEX idx_ve_next_inspection_date ON vehicles_equipment(next_inspection_date);
-CREATE INDEX idx_ve_created_by ON vehicles_equipment(created_by);
-
--- inspections
-CREATE INDEX idx_insp_vehicle_equipment_id ON inspections(vehicle_equipment_id);
-CREATE INDEX idx_insp_assigned_inspector_id ON inspections(assigned_inspector_id);
-CREATE INDEX idx_insp_assigned_by ON inspections(assigned_by);
-CREATE INDEX idx_insp_verified_by ON inspections(verified_by);
-CREATE INDEX idx_insp_status ON inspections(status);
-CREATE INDEX idx_insp_result ON inspections(result);
-CREATE INDEX idx_insp_scheduled_date ON inspections(scheduled_date);
-CREATE INDEX idx_insp_inspection_type ON inspections(inspection_type);
-
--- inspections.assignment_id
-CREATE INDEX idx_insp_assignment_id ON inspections(assignment_id);
-
--- inspection_checklist_items
-CREATE INDEX idx_checklist_inspection_id ON inspection_checklist_items(inspection_id);
+CREATE INDEX idx_ve_created_at ON vehicles_equipment(created_at);
 
 -- assignments
 CREATE INDEX idx_assign_company_id ON assignments(company_id);
-CREATE INDEX idx_assign_assigned_by ON assignments(assigned_by);
 CREATE INDEX idx_assign_inspector_id ON assignments(inspector_id);
 CREATE INDEX idx_assign_status ON assignments(status);
 CREATE INDEX idx_assign_scheduled_date ON assignments(scheduled_date);
 
+-- inspections
+CREATE INDEX idx_insp_vehicle_equipment_id ON inspections(vehicle_equipment_id);
+CREATE INDEX idx_insp_assigned_inspector_id ON inspections(assigned_inspector_id);
+CREATE INDEX idx_insp_assignment_id ON inspections(assignment_id);
+CREATE INDEX idx_insp_status ON inspections(status);
+CREATE INDEX idx_insp_result ON inspections(result);
+CREATE INDEX idx_insp_scheduled_date ON inspections(scheduled_date);
+CREATE INDEX idx_insp_created_at ON inspections(created_at);
+
+-- inspection_checklist_items
+CREATE INDEX idx_checklist_inspection_id ON inspection_checklist_items(inspection_id);
+
 -- notifications
 CREATE INDEX idx_notif_user_id ON notifications(user_id);
-CREATE INDEX idx_notif_is_read ON notifications(is_read);
+CREATE INDEX idx_notif_user_unread ON notifications(user_id) WHERE is_read = FALSE;
 CREATE INDEX idx_notif_created_at ON notifications(created_at);
-CREATE INDEX idx_notif_reference ON notifications(reference_id, reference_table);
 
 -- audit_logs
 CREATE INDEX idx_audit_user_id ON audit_logs(user_id);
 CREATE INDEX idx_audit_table_name ON audit_logs(table_name);
-CREATE INDEX idx_audit_action ON audit_logs(action);
 CREATE INDEX idx_audit_created_at ON audit_logs(created_at);
-CREATE INDEX idx_audit_record_id ON audit_logs(record_id);
 
 
 -- ============================================================================
--- 6. ROW LEVEL SECURITY - ENABLE ON ALL TABLES
+-- 6. ROW LEVEL SECURITY
 -- ============================================================================
 
 ALTER TABLE user_profiles              ENABLE ROW LEVEL SECURITY;
@@ -332,46 +324,24 @@ ALTER TABLE inspection_checklist_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notifications              ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_logs                 ENABLE ROW LEVEL SECURITY;
 
+
 -- ============================================================================
 -- 7. RLS POLICIES
 -- ============================================================================
 
--- **************************************************************************
--- 7.1 user_profiles POLICIES
--- **************************************************************************
-
-CREATE POLICY "user_profiles_owner_select"
-  ON user_profiles FOR SELECT TO authenticated
-  USING (get_user_role() = 'owner');
-
-CREATE POLICY "user_profiles_owner_insert"
-  ON user_profiles FOR INSERT TO authenticated
-  WITH CHECK (get_user_role() = 'owner');
-
-CREATE POLICY "user_profiles_owner_update"
-  ON user_profiles FOR UPDATE TO authenticated
+-- 7.1 user_profiles
+CREATE POLICY "user_profiles_owner_all"
+  ON user_profiles FOR ALL TO authenticated
   USING (get_user_role() = 'owner')
   WITH CHECK (get_user_role() = 'owner');
-
-CREATE POLICY "user_profiles_owner_delete"
-  ON user_profiles FOR DELETE TO authenticated
-  USING (get_user_role() = 'owner');
 
 CREATE POLICY "user_profiles_admin_select"
   ON user_profiles FOR SELECT TO authenticated
   USING (get_user_role() = 'admin');
 
-CREATE POLICY "user_profiles_inspector_select_own"
+CREATE POLICY "user_profiles_self_select"
   ON user_profiles FOR SELECT TO authenticated
-  USING (get_user_role() = 'inspector' AND id = auth.uid());
-
-CREATE POLICY "user_profiles_contractor_select_own"
-  ON user_profiles FOR SELECT TO authenticated
-  USING (get_user_role() = 'contractor' AND id = auth.uid());
-
-CREATE POLICY "user_profiles_verifier_select_own"
-  ON user_profiles FOR SELECT TO authenticated
-  USING (get_user_role() = 'verifier' AND id = auth.uid());
+  USING (id = auth.uid());
 
 CREATE POLICY "user_profiles_self_insert"
   ON user_profiles FOR INSERT TO authenticated
@@ -382,165 +352,70 @@ CREATE POLICY "user_profiles_self_update"
   USING (id = auth.uid())
   WITH CHECK (id = auth.uid());
 
--- NOTE: Role field is protected from self-update by the
--- trg_prevent_role_self_update trigger (see section 9).
 
-
--- **************************************************************************
--- 7.2 companies POLICIES
--- **************************************************************************
-
-CREATE POLICY "companies_owner_select"
-  ON companies FOR SELECT TO authenticated
-  USING (get_user_role() = 'owner');
-
-CREATE POLICY "companies_owner_insert"
-  ON companies FOR INSERT TO authenticated
-  WITH CHECK (get_user_role() = 'owner');
-
-CREATE POLICY "companies_owner_update"
-  ON companies FOR UPDATE TO authenticated
+-- 7.2 companies
+CREATE POLICY "companies_owner_all"
+  ON companies FOR ALL TO authenticated
   USING (get_user_role() = 'owner')
   WITH CHECK (get_user_role() = 'owner');
 
-CREATE POLICY "companies_owner_delete"
-  ON companies FOR DELETE TO authenticated
-  USING (get_user_role() = 'owner');
-
-CREATE POLICY "companies_admin_select"
-  ON companies FOR SELECT TO authenticated
-  USING (get_user_role() = 'admin');
-
-CREATE POLICY "companies_admin_insert"
-  ON companies FOR INSERT TO authenticated
-  WITH CHECK (get_user_role() = 'admin');
-
-CREATE POLICY "companies_admin_update"
-  ON companies FOR UPDATE TO authenticated
+CREATE POLICY "companies_admin_all"
+  ON companies FOR ALL TO authenticated
   USING (get_user_role() = 'admin')
   WITH CHECK (get_user_role() = 'admin');
 
-CREATE POLICY "companies_admin_delete"
-  ON companies FOR DELETE TO authenticated
-  USING (get_user_role() = 'admin');
-
-CREATE POLICY "companies_inspector_select"
+CREATE POLICY "companies_select_authenticated"
   ON companies FOR SELECT TO authenticated
-  USING (get_user_role() = 'inspector');
-
-CREATE POLICY "companies_contractor_select"
-  ON companies FOR SELECT TO authenticated
-  USING (get_user_role() = 'contractor');
-
-CREATE POLICY "companies_verifier_select"
-  ON companies FOR SELECT TO authenticated
-  USING (get_user_role() = 'verifier');
+  USING (get_user_role() IN ('inspector', 'contractor', 'verifier'));
 
 
--- **************************************************************************
--- 7.3 equipment_types POLICIES
--- **************************************************************************
-
-CREATE POLICY "equipment_types_owner_select"
-  ON equipment_types FOR SELECT TO authenticated
-  USING (get_user_role() = 'owner');
-
-CREATE POLICY "equipment_types_owner_insert"
-  ON equipment_types FOR INSERT TO authenticated
-  WITH CHECK (get_user_role() = 'owner');
-
-CREATE POLICY "equipment_types_owner_update"
-  ON equipment_types FOR UPDATE TO authenticated
+-- 7.3 equipment_types
+CREATE POLICY "equipment_types_owner_all"
+  ON equipment_types FOR ALL TO authenticated
   USING (get_user_role() = 'owner')
   WITH CHECK (get_user_role() = 'owner');
 
-CREATE POLICY "equipment_types_owner_delete"
-  ON equipment_types FOR DELETE TO authenticated
-  USING (get_user_role() = 'owner');
-
-CREATE POLICY "equipment_types_admin_select"
-  ON equipment_types FOR SELECT TO authenticated
-  USING (get_user_role() = 'admin');
-
-CREATE POLICY "equipment_types_admin_insert"
-  ON equipment_types FOR INSERT TO authenticated
-  WITH CHECK (get_user_role() = 'admin');
-
-CREATE POLICY "equipment_types_admin_update"
-  ON equipment_types FOR UPDATE TO authenticated
+CREATE POLICY "equipment_types_admin_all"
+  ON equipment_types FOR ALL TO authenticated
   USING (get_user_role() = 'admin')
   WITH CHECK (get_user_role() = 'admin');
 
-CREATE POLICY "equipment_types_admin_delete"
-  ON equipment_types FOR DELETE TO authenticated
-  USING (get_user_role() = 'admin');
-
-CREATE POLICY "equipment_types_inspector_select"
+CREATE POLICY "equipment_types_select_authenticated"
   ON equipment_types FOR SELECT TO authenticated
-  USING (get_user_role() = 'inspector');
-
-CREATE POLICY "equipment_types_contractor_select"
-  ON equipment_types FOR SELECT TO authenticated
-  USING (get_user_role() = 'contractor');
-
-CREATE POLICY "equipment_types_verifier_select"
-  ON equipment_types FOR SELECT TO authenticated
-  USING (get_user_role() = 'verifier');
+  USING (get_user_role() IN ('inspector', 'contractor', 'verifier'));
 
 
--- **************************************************************************
--- 7.4 vehicles_equipment POLICIES
--- **************************************************************************
-
-CREATE POLICY "vehicles_equipment_owner_select"
-  ON vehicles_equipment FOR SELECT TO authenticated
-  USING (get_user_role() = 'owner');
-
-CREATE POLICY "vehicles_equipment_owner_insert"
-  ON vehicles_equipment FOR INSERT TO authenticated
-  WITH CHECK (get_user_role() = 'owner');
-
-CREATE POLICY "vehicles_equipment_owner_update"
-  ON vehicles_equipment FOR UPDATE TO authenticated
+-- 7.4 vehicles_equipment
+CREATE POLICY "vehicles_equipment_owner_all"
+  ON vehicles_equipment FOR ALL TO authenticated
   USING (get_user_role() = 'owner')
   WITH CHECK (get_user_role() = 'owner');
 
-CREATE POLICY "vehicles_equipment_owner_delete"
-  ON vehicles_equipment FOR DELETE TO authenticated
-  USING (get_user_role() = 'owner');
-
-CREATE POLICY "vehicles_equipment_admin_select"
-  ON vehicles_equipment FOR SELECT TO authenticated
-  USING (get_user_role() = 'admin');
-
-CREATE POLICY "vehicles_equipment_admin_insert"
-  ON vehicles_equipment FOR INSERT TO authenticated
-  WITH CHECK (get_user_role() = 'admin');
-
-CREATE POLICY "vehicles_equipment_admin_update"
-  ON vehicles_equipment FOR UPDATE TO authenticated
+CREATE POLICY "vehicles_equipment_admin_all"
+  ON vehicles_equipment FOR ALL TO authenticated
   USING (get_user_role() = 'admin')
   WITH CHECK (get_user_role() = 'admin');
-
-CREATE POLICY "vehicles_equipment_admin_delete"
-  ON vehicles_equipment FOR DELETE TO authenticated
-  USING (get_user_role() = 'admin');
 
 CREATE POLICY "vehicles_equipment_inspector_select"
   ON vehicles_equipment FOR SELECT TO authenticated
   USING (
     get_user_role() = 'inspector'
     AND id IN (
-      SELECT vehicle_equipment_id
-      FROM inspections
+      SELECT vehicle_equipment_id FROM inspections
       WHERE assigned_inspector_id = auth.uid()
     )
   );
 
+CREATE POLICY "vehicles_equipment_inspector_insert"
+  ON vehicles_equipment FOR INSERT TO authenticated
+  WITH CHECK (get_user_role() = 'inspector');
+
 CREATE POLICY "vehicles_equipment_contractor_select"
   ON vehicles_equipment FOR SELECT TO authenticated
-  USING (get_user_role() = 'contractor'
-    AND company_id = (SELECT company_id FROM user_profiles WHERE id = auth.uid()));
+  USING (
+    get_user_role() = 'contractor'
+    AND company_id = (SELECT company_id FROM user_profiles WHERE id = auth.uid())
+  );
 
 CREATE POLICY "vehicles_equipment_verifier_select"
   ON vehicles_equipment FOR SELECT TO authenticated
@@ -550,61 +425,29 @@ CREATE POLICY "vehicles_equipment_verifier_select"
   );
 
 
--- **************************************************************************
--- 7.5 inspections POLICIES
--- **************************************************************************
-
-CREATE POLICY "inspections_owner_select"
-  ON inspections FOR SELECT TO authenticated
-  USING (get_user_role() = 'owner');
-
-CREATE POLICY "inspections_owner_insert"
-  ON inspections FOR INSERT TO authenticated
-  WITH CHECK (get_user_role() = 'owner');
-
-CREATE POLICY "inspections_owner_update"
-  ON inspections FOR UPDATE TO authenticated
+-- 7.5 inspections
+CREATE POLICY "inspections_owner_all"
+  ON inspections FOR ALL TO authenticated
   USING (get_user_role() = 'owner')
   WITH CHECK (get_user_role() = 'owner');
 
-CREATE POLICY "inspections_owner_delete"
-  ON inspections FOR DELETE TO authenticated
-  USING (get_user_role() = 'owner');
-
-CREATE POLICY "inspections_admin_select"
-  ON inspections FOR SELECT TO authenticated
-  USING (get_user_role() = 'admin');
-
-CREATE POLICY "inspections_admin_insert"
-  ON inspections FOR INSERT TO authenticated
-  WITH CHECK (get_user_role() = 'admin');
-
-CREATE POLICY "inspections_admin_update"
-  ON inspections FOR UPDATE TO authenticated
+CREATE POLICY "inspections_admin_all"
+  ON inspections FOR ALL TO authenticated
   USING (get_user_role() = 'admin')
   WITH CHECK (get_user_role() = 'admin');
 
-CREATE POLICY "inspections_admin_delete"
-  ON inspections FOR DELETE TO authenticated
-  USING (get_user_role() = 'admin');
-
 CREATE POLICY "inspections_inspector_select"
   ON inspections FOR SELECT TO authenticated
-  USING (
-    get_user_role() = 'inspector'
-    AND assigned_inspector_id = auth.uid()
-  );
+  USING (get_user_role() = 'inspector' AND assigned_inspector_id = auth.uid());
+
+CREATE POLICY "inspections_inspector_insert"
+  ON inspections FOR INSERT TO authenticated
+  WITH CHECK (get_user_role() = 'inspector');
 
 CREATE POLICY "inspections_inspector_update"
   ON inspections FOR UPDATE TO authenticated
-  USING (
-    get_user_role() = 'inspector'
-    AND assigned_inspector_id = auth.uid()
-  )
-  WITH CHECK (
-    get_user_role() = 'inspector'
-    AND assigned_inspector_id = auth.uid()
-  );
+  USING (get_user_role() = 'inspector' AND assigned_inspector_id = auth.uid())
+  WITH CHECK (get_user_role() = 'inspector' AND assigned_inspector_id = auth.uid());
 
 CREATE POLICY "inspections_contractor_select"
   ON inspections FOR SELECT TO authenticated
@@ -644,43 +487,16 @@ CREATE POLICY "inspections_verifier_update"
   );
 
 
--- **************************************************************************
--- 7.6 inspection_checklist_items POLICIES
--- **************************************************************************
-
-CREATE POLICY "inspection_checklist_items_owner_select"
-  ON inspection_checklist_items FOR SELECT TO authenticated
-  USING (get_user_role() = 'owner');
-
-CREATE POLICY "inspection_checklist_items_owner_insert"
-  ON inspection_checklist_items FOR INSERT TO authenticated
-  WITH CHECK (get_user_role() = 'owner');
-
-CREATE POLICY "inspection_checklist_items_owner_update"
-  ON inspection_checklist_items FOR UPDATE TO authenticated
+-- 7.6 inspection_checklist_items
+CREATE POLICY "checklist_owner_all"
+  ON inspection_checklist_items FOR ALL TO authenticated
   USING (get_user_role() = 'owner')
   WITH CHECK (get_user_role() = 'owner');
 
-CREATE POLICY "inspection_checklist_items_owner_delete"
-  ON inspection_checklist_items FOR DELETE TO authenticated
-  USING (get_user_role() = 'owner');
-
-CREATE POLICY "inspection_checklist_items_admin_select"
-  ON inspection_checklist_items FOR SELECT TO authenticated
-  USING (get_user_role() = 'admin');
-
-CREATE POLICY "inspection_checklist_items_admin_insert"
-  ON inspection_checklist_items FOR INSERT TO authenticated
-  WITH CHECK (get_user_role() = 'admin');
-
-CREATE POLICY "inspection_checklist_items_admin_update"
-  ON inspection_checklist_items FOR UPDATE TO authenticated
+CREATE POLICY "checklist_admin_all"
+  ON inspection_checklist_items FOR ALL TO authenticated
   USING (get_user_role() = 'admin')
   WITH CHECK (get_user_role() = 'admin');
-
-CREATE POLICY "inspection_checklist_items_admin_delete"
-  ON inspection_checklist_items FOR DELETE TO authenticated
-  USING (get_user_role() = 'admin');
 
 CREATE POLICY "checklist_inspector_select"
   ON inspection_checklist_items FOR SELECT TO authenticated
@@ -718,43 +534,16 @@ CREATE POLICY "checklist_verifier_select"
   );
 
 
--- **************************************************************************
--- 7.7 assignments POLICIES
--- **************************************************************************
-
-CREATE POLICY "assignments_owner_select"
-  ON assignments FOR SELECT TO authenticated
-  USING (get_user_role() = 'owner');
-
-CREATE POLICY "assignments_owner_insert"
-  ON assignments FOR INSERT TO authenticated
-  WITH CHECK (get_user_role() = 'owner');
-
-CREATE POLICY "assignments_owner_update"
-  ON assignments FOR UPDATE TO authenticated
+-- 7.7 assignments
+CREATE POLICY "assignments_owner_all"
+  ON assignments FOR ALL TO authenticated
   USING (get_user_role() = 'owner')
   WITH CHECK (get_user_role() = 'owner');
 
-CREATE POLICY "assignments_owner_delete"
-  ON assignments FOR DELETE TO authenticated
-  USING (get_user_role() = 'owner');
-
-CREATE POLICY "assignments_admin_select"
-  ON assignments FOR SELECT TO authenticated
-  USING (get_user_role() = 'admin');
-
-CREATE POLICY "assignments_admin_insert"
-  ON assignments FOR INSERT TO authenticated
-  WITH CHECK (get_user_role() = 'admin');
-
-CREATE POLICY "assignments_admin_update"
-  ON assignments FOR UPDATE TO authenticated
+CREATE POLICY "assignments_admin_all"
+  ON assignments FOR ALL TO authenticated
   USING (get_user_role() = 'admin')
   WITH CHECK (get_user_role() = 'admin');
-
-CREATE POLICY "assignments_admin_delete"
-  ON assignments FOR DELETE TO authenticated
-  USING (get_user_role() = 'admin');
 
 CREATE POLICY "assignments_inspector_select"
   ON assignments FOR SELECT TO authenticated
@@ -779,10 +568,8 @@ CREATE POLICY "assignments_verifier_select"
     AND company_id = (SELECT company_id FROM user_profiles WHERE id = auth.uid())
   );
 
--- **************************************************************************
--- 7.8 notifications POLICIES
--- **************************************************************************
 
+-- 7.8 notifications
 CREATE POLICY "notifications_select_own"
   ON notifications FOR SELECT TO authenticated
   USING (user_id = auth.uid());
@@ -796,32 +583,26 @@ CREATE POLICY "notifications_insert"
   ON notifications FOR INSERT TO authenticated
   WITH CHECK (TRUE);
 
-CREATE POLICY "notifications_owner_delete"
+CREATE POLICY "notifications_delete_own"
   ON notifications FOR DELETE TO authenticated
   USING (get_user_role() = 'owner' OR user_id = auth.uid());
 
--- **************************************************************************
--- 7.9 audit_logs POLICIES (IMMUTABLE - INSERT and SELECT only)
--- **************************************************************************
 
--- Owner: SELECT only
+-- 7.9 audit_logs (IMMUTABLE — INSERT and SELECT only)
 CREATE POLICY "audit_logs_owner_select"
   ON audit_logs FOR SELECT TO authenticated
   USING (get_user_role() = 'owner');
 
--- Authenticated: INSERT only where user_id matches caller (prevents impersonation)
 CREATE POLICY "audit_logs_trigger_insert"
   ON audit_logs FOR INSERT TO authenticated
   WITH CHECK (user_id = auth.uid());
 
--- NO UPDATE policy -> updates denied by RLS
--- NO DELETE policy -> deletes denied by RLS
-
 
 -- ============================================================================
--- 8. AUDIT TRIGGER FUNCTION
+-- 8. TRIGGER FUNCTIONS
 -- ============================================================================
 
+-- 8.1 Audit trigger
 CREATE OR REPLACE FUNCTION audit_trigger_function()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -864,82 +645,17 @@ BEGIN
     auth.uid(),
     COALESCE(v_user_email, 'system'),
     COALESCE(v_user_role, 'system'),
-    v_action,
-    TG_TABLE_NAME,
-    v_record_id,
-    v_old_values,
-    v_new_values,
+    v_action, TG_TABLE_NAME, v_record_id,
+    v_old_values, v_new_values,
     COALESCE(current_setting('request.headers', TRUE)::json->>'x-forwarded-for', 'unknown'),
     NOW()
   );
 
-  IF TG_OP = 'DELETE' THEN
-    RETURN OLD;
-  ELSE
-    RETURN NEW;
-  END IF;
+  IF TG_OP = 'DELETE' THEN RETURN OLD; ELSE RETURN NEW; END IF;
 END;
 $$;
 
-
--- ============================================================================
--- 9. AUDIT TRIGGERS ON TABLES
--- ============================================================================
-
-CREATE TRIGGER trg_vehicles_equipment_audit
-  AFTER INSERT OR UPDATE OR DELETE ON vehicles_equipment
-  FOR EACH ROW
-  EXECUTE FUNCTION audit_trigger_function();
-
-CREATE TRIGGER trg_inspections_audit
-  AFTER INSERT OR UPDATE OR DELETE ON inspections
-  FOR EACH ROW
-  EXECUTE FUNCTION audit_trigger_function();
-
-CREATE TRIGGER trg_assignments_audit
-  AFTER INSERT OR UPDATE OR DELETE ON assignments
-  FOR EACH ROW
-  EXECUTE FUNCTION audit_trigger_function();
-
-CREATE TRIGGER trg_user_profiles_audit
-  AFTER INSERT OR UPDATE OR DELETE ON user_profiles
-  FOR EACH ROW
-  EXECUTE FUNCTION audit_trigger_function();
-
-CREATE TRIGGER trg_companies_audit
-  AFTER INSERT OR UPDATE OR DELETE ON companies
-  FOR EACH ROW
-  EXECUTE FUNCTION audit_trigger_function();
-
--- Prevent privilege escalation: block role field changes except by owners
-CREATE OR REPLACE FUNCTION prevent_role_self_update()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  IF NEW.role = OLD.role THEN
-    RETURN NEW;
-  END IF;
-
-  IF (SELECT role FROM user_profiles WHERE id = auth.uid()) = 'owner' THEN
-    RETURN NEW;
-  END IF;
-
-  RAISE EXCEPTION 'Only owners can change user roles';
-END;
-$$;
-
-CREATE TRIGGER trg_prevent_role_self_update
-  BEFORE UPDATE ON user_profiles
-  FOR EACH ROW
-  EXECUTE FUNCTION prevent_role_self_update();
-
--- ============================================================================
--- 10. UPDATED_AT AUTO-UPDATE TRIGGER
--- ============================================================================
-
+-- 8.2 updated_at auto-update
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -950,26 +666,21 @@ BEGIN
 END;
 $$;
 
-CREATE TRIGGER trg_user_profiles_updated_at
-  BEFORE UPDATE ON user_profiles
-  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+-- 8.3 Prevent role self-escalation
+CREATE OR REPLACE FUNCTION prevent_role_self_update()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NEW.role = OLD.role THEN RETURN NEW; END IF;
+  IF (SELECT role FROM user_profiles WHERE id = auth.uid()) = 'owner' THEN RETURN NEW; END IF;
+  RAISE EXCEPTION 'Only owners can change user roles';
+END;
+$$;
 
-CREATE TRIGGER trg_vehicles_equipment_updated_at
-  BEFORE UPDATE ON vehicles_equipment
-  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-
-CREATE TRIGGER trg_inspections_updated_at
-  BEFORE UPDATE ON inspections
-  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-
-CREATE TRIGGER trg_assignments_updated_at
-  BEFORE UPDATE ON assignments
-  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-
--- ============================================================================
--- 11. NOTIFICATION TRIGGER ON ASSIGNMENTS
--- ============================================================================
-
+-- 8.4 Assignment notification trigger
 CREATE OR REPLACE FUNCTION assignment_notification_trigger()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -982,9 +693,7 @@ DECLARE
   v_title TEXT;
   v_message TEXT;
 BEGIN
-  IF NEW.inspector_id IS NULL THEN
-    RETURN NEW;
-  END IF;
+  IF NEW.inspector_id IS NULL THEN RETURN NEW; END IF;
 
   SELECT name INTO v_company_name FROM companies WHERE id = NEW.company_id;
 
@@ -1031,22 +740,7 @@ BEGIN
 END;
 $$;
 
-CREATE TRIGGER trg_assignment_notifications
-  AFTER INSERT OR UPDATE ON assignments
-  FOR EACH ROW
-  EXECUTE FUNCTION assignment_notification_trigger();
-
--- ============================================================================
--- 12. ENABLE REALTIME ON NOTIFICATIONS
--- ============================================================================
-
-ALTER PUBLICATION supabase_realtime ADD TABLE notifications;
-
--- ============================================================================
--- 13. STATUS TRANSITION ENFORCEMENT TRIGGERS
--- ============================================================================
-
--- Restrict inspection status changes by role
+-- 8.5 Inspection status enforcement
 CREATE OR REPLACE FUNCTION enforce_inspection_status_rules()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -1076,22 +770,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE TRIGGER trg_enforce_inspection_status
-  BEFORE UPDATE ON inspections
-  FOR EACH ROW
-  EXECUTE FUNCTION enforce_inspection_status_rules();
-
--- Restrict assignment status changes by role
+-- 8.6 Assignment status enforcement
 CREATE OR REPLACE FUNCTION enforce_assignment_status_rules()
 RETURNS TRIGGER AS $$
 DECLARE
   current_role TEXT;
 BEGIN
   SELECT role INTO current_role FROM user_profiles WHERE id = auth.uid();
-
-  IF NEW.status NOT IN ('assigned', 'rescheduled', 'done', 'delayed') THEN
-    RAISE EXCEPTION 'Invalid assignment status: %', NEW.status;
-  END IF;
 
   IF current_role = 'inspector' THEN
     IF NEW.status NOT IN ('done', 'delayed') AND NEW.status != OLD.status THEN
@@ -1107,31 +792,93 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE TRIGGER trg_enforce_assignment_status
-  BEFORE UPDATE ON assignments
-  FOR EACH ROW
-  EXECUTE FUNCTION enforce_assignment_status_rules();
-
--- Validate inspection result and status enum values
+-- 8.7 Inspection result/status validation
 CREATE OR REPLACE FUNCTION enforce_inspection_result_values()
 RETURNS TRIGGER AS $$
 BEGIN
   IF NEW.result IS NOT NULL AND NEW.result NOT IN ('pending', 'pass', 'fail') THEN
     RAISE EXCEPTION 'Invalid inspection result: %', NEW.result;
   END IF;
-
   IF NEW.status IS NOT NULL AND NEW.status NOT IN ('scheduled', 'in_progress', 'completed', 'cancelled') THEN
     RAISE EXCEPTION 'Invalid inspection status: %', NEW.status;
   END IF;
-
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+
+-- ============================================================================
+-- 9. TRIGGERS
+-- ============================================================================
+
+-- Audit triggers
+CREATE TRIGGER trg_vehicles_equipment_audit
+  AFTER INSERT OR UPDATE OR DELETE ON vehicles_equipment
+  FOR EACH ROW EXECUTE FUNCTION audit_trigger_function();
+
+CREATE TRIGGER trg_inspections_audit
+  AFTER INSERT OR UPDATE OR DELETE ON inspections
+  FOR EACH ROW EXECUTE FUNCTION audit_trigger_function();
+
+CREATE TRIGGER trg_assignments_audit
+  AFTER INSERT OR UPDATE OR DELETE ON assignments
+  FOR EACH ROW EXECUTE FUNCTION audit_trigger_function();
+
+CREATE TRIGGER trg_user_profiles_audit
+  AFTER INSERT OR UPDATE OR DELETE ON user_profiles
+  FOR EACH ROW EXECUTE FUNCTION audit_trigger_function();
+
+CREATE TRIGGER trg_companies_audit
+  AFTER INSERT OR UPDATE OR DELETE ON companies
+  FOR EACH ROW EXECUTE FUNCTION audit_trigger_function();
+
+-- updated_at triggers
+CREATE TRIGGER trg_user_profiles_updated_at
+  BEFORE UPDATE ON user_profiles
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE TRIGGER trg_vehicles_equipment_updated_at
+  BEFORE UPDATE ON vehicles_equipment
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE TRIGGER trg_inspections_updated_at
+  BEFORE UPDATE ON inspections
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE TRIGGER trg_assignments_updated_at
+  BEFORE UPDATE ON assignments
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- Role protection
+CREATE TRIGGER trg_prevent_role_self_update
+  BEFORE UPDATE ON user_profiles
+  FOR EACH ROW EXECUTE FUNCTION prevent_role_self_update();
+
+-- Assignment notifications
+CREATE TRIGGER trg_assignment_notifications
+  AFTER INSERT OR UPDATE ON assignments
+  FOR EACH ROW EXECUTE FUNCTION assignment_notification_trigger();
+
+-- Status enforcement
+CREATE TRIGGER trg_enforce_inspection_status
+  BEFORE UPDATE ON inspections
+  FOR EACH ROW EXECUTE FUNCTION enforce_inspection_status_rules();
+
+CREATE TRIGGER trg_enforce_assignment_status
+  BEFORE UPDATE ON assignments
+  FOR EACH ROW EXECUTE FUNCTION enforce_assignment_status_rules();
+
 CREATE TRIGGER trg_enforce_inspection_values
   BEFORE INSERT OR UPDATE ON inspections
-  FOR EACH ROW
-  EXECUTE FUNCTION enforce_inspection_result_values();
+  FOR EACH ROW EXECUTE FUNCTION enforce_inspection_result_values();
+
+
+-- ============================================================================
+-- 10. REALTIME
+-- ============================================================================
+
+ALTER PUBLICATION supabase_realtime ADD TABLE notifications;
+
 
 -- ============================================================================
 -- END OF SCHEMA
