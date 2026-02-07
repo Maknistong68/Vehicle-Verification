@@ -110,6 +110,16 @@ export async function updateSession(request: NextRequest) {
         url.pathname = '/dashboard'
         return NextResponse.redirect(url)
       }
+
+      // Contractor/Verifier: only /lookup allowed
+      if (['contractor', 'verifier'].includes(role || '')) {
+        const allowedPrefixes = ['/lookup', '/api/']
+        if (!allowedPrefixes.some(p => pathname.startsWith(p))) {
+          const url = request.nextUrl.clone()
+          url.pathname = '/lookup'
+          return NextResponse.redirect(url)
+        }
+      }
     }
 
     return supabaseResponse

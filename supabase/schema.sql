@@ -473,10 +473,7 @@ CREATE POLICY "vehicles_equipment_contractor_select"
 
 CREATE POLICY "vehicles_equipment_verifier_select"
   ON vehicles_equipment FOR SELECT TO authenticated
-  USING (
-    get_user_role() = 'verifier'
-    AND company_id = get_user_company_id()
-  );
+  USING (get_user_role() = 'verifier');
 
 
 -- 7.5 inspections
@@ -512,21 +509,7 @@ CREATE POLICY "inspections_contractor_select"
 
 CREATE POLICY "inspections_verifier_select"
   ON inspections FOR SELECT TO authenticated
-  USING (
-    get_user_role() = 'verifier'
-    AND vehicle_equipment_id IN (SELECT get_company_vehicle_ids())
-  );
-
-CREATE POLICY "inspections_verifier_update"
-  ON inspections FOR UPDATE TO authenticated
-  USING (
-    get_user_role() = 'verifier'
-    AND vehicle_equipment_id IN (SELECT get_company_vehicle_ids())
-  )
-  WITH CHECK (
-    get_user_role() = 'verifier'
-    AND vehicle_equipment_id IN (SELECT get_company_vehicle_ids())
-  );
+  USING (get_user_role() = 'verifier');
 
 
 -- 7.6 assignments
@@ -558,10 +541,7 @@ CREATE POLICY "assignments_contractor_select"
 
 CREATE POLICY "assignments_verifier_select"
   ON assignments FOR SELECT TO authenticated
-  USING (
-    get_user_role() = 'verifier'
-    AND company_id = get_user_company_id()
-  );
+  USING (get_user_role() = 'verifier');
 
 
 -- 7.8 notifications

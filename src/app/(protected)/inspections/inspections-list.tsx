@@ -93,15 +93,6 @@ export function InspectionsList({ inspections, totalCount, currentPage, pageSize
       )
     }
 
-    // Verifier: Verify
-    if (role === 'verifier' && insp.status === 'completed' && !insp.verified_at) {
-      actions.push(
-        <Link key="verify" href={`/inspections/${insp.id}/verify`} className="text-sm text-purple-600 hover:text-purple-500 font-medium">
-          Verify
-        </Link>
-      )
-    }
-
     // Owner/Admin: Cancel
     if (canCancel && insp.status !== 'completed' && insp.status !== 'cancelled') {
       actions.push(
@@ -124,14 +115,6 @@ export function InspectionsList({ inspections, totalCount, currentPage, pageSize
       return (
         <div className="flex items-center gap-3">
           <Link href={`/inspections/${insp.id}/submit`} className="text-emerald-600 font-medium">Submit</Link>
-          <Link href={`/inspections/${insp.id}`} className="text-gray-400">View</Link>
-        </div>
-      )
-    }
-    if (role === 'verifier' && insp.status === 'completed' && !insp.verified_at) {
-      return (
-        <div className="flex items-center gap-3">
-          <Link href={`/inspections/${insp.id}/verify`} className="text-emerald-600 font-medium">Verify</Link>
           <Link href={`/inspections/${insp.id}`} className="text-gray-400">View</Link>
         </div>
       )

@@ -19,7 +19,7 @@ const navItems = [
     href: '/dashboard',
     icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6',
     filledIcon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6',
-    roles: ['owner', 'admin', 'inspector', 'contractor', 'verifier'] as UserRole[],
+    roles: ['owner', 'admin', 'inspector'] as UserRole[],
     mobileOrder: 1,
   },
   {
@@ -27,7 +27,7 @@ const navItems = [
     href: '/fleet',
     icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4',
     filledIcon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4',
-    roles: ['owner', 'admin', 'inspector', 'contractor', 'verifier'] as UserRole[],
+    roles: ['owner', 'admin', 'inspector'] as UserRole[],
     mobileOrder: 2,
   },
   {
@@ -108,7 +108,9 @@ export function Sidebar({ userRole, userName, userEmail }: SidebarProps) {
   // Mobile: first 4 items in bottom tab bar, rest in "More" sheet
   const mobileTabItems = filteredItems.slice(0, 4)
   const moreItems = filteredItems.slice(4)
-  const hasMore = moreItems.length > 0
+  const isMinimalRole = ['contractor', 'verifier'].includes(effectiveRole)
+  // Always show "More" for contractor/verifier so they can access Sign Out on mobile
+  const hasMore = moreItems.length > 0 || isMinimalRole
 
   const displayRole = effectiveRole
 
